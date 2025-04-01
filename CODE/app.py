@@ -1,5 +1,3 @@
-
-
 #================================================================================================================================================================
 
 import os
@@ -18,6 +16,7 @@ import jwt
 import logging
 from logging.handlers import RotatingFileHandler
 import bleach
+from flask_migrate import Migrate
 from flask_limiter.errors import RateLimitExceeded
 import re
 import glob
@@ -28,12 +27,13 @@ from operator import itemgetter
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'your_secret_key'  # Use environment variable for production
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Hamadabank.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:password@localhost:3306/flask_bank'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or 'your_jwt_secret_key'  # Use environment variable for production
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=30)  # Token expires after 30 minutes
 
 db = SQLAlchemy(app)
+#migrate = Migrate(app, db)
 csrf = CSRFProtect(app)
 limiter = Limiter(key_func=get_remote_address)
 limiter.init_app(app)
@@ -46,14 +46,14 @@ limiter.init_app(app)
 # Set up logging
 if not os.path.exists('logs'):
     os.mkdir('logs')
-file_handler = RotatingFileHandler('logs/hamadabank.log', maxBytes=10240, backupCount=10)
+file_handler = RotatingFileHandler('logs/flask_bank.log', maxBytes=10240, backupCount=10)
 file_handler.setFormatter(logging.Formatter(
     '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
 ))
 file_handler.setLevel(logging.INFO)
 app.logger.addHandler(file_handler)
 app.logger.setLevel(logging.INFO)
-app.logger.info('Hamada Bank startup')
+app.logger.info('flask_bank')
 
 
 #================================================================================================================================================================
@@ -81,7 +81,7 @@ def recreate_database():
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)
+    password = db.Column(db.String(500), nullable=False)
     first_name = db.Column(db.String(80), nullable=False)
     last_name = db.Column(db.String(80), nullable=False)
     phone = db.Column(db.String(20), nullable=False)
@@ -105,7 +105,7 @@ class Transaction(db.Model):
     amount = db.Column(db.Float, nullable=False)
     balance = db.Column(db.Float, nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow)
-    hash = db.Column(db.String(64), nullable=False)  # For integrity checking
+    hash = db.Column(db.String(500), nullable=False)  # For integrity checking
 
 
 
@@ -237,7 +237,13 @@ def admin_required(f):
 
 @app.before_request
 def log_request_info():
-    app.logger.info(f"Request Info: IP={request.remote_addr}, UserAgent={request.user_agent}, Method={request.method}, Path={request.path}")
+    app.logger.info(
+    "Request Info: IP=%s, UserAgent=%s, Method=%s, Path=%s",
+    request.remote_addr,
+    request.user_agent.string if request.user_agent else "Unknown",
+    request.method,
+    request.path
+    )
 
 
 
@@ -254,7 +260,6 @@ def home():
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=15)])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=8, max=15)])
-
 
 #================================================================================================================================================================
 
@@ -365,17 +370,21 @@ def deposit(current_user):
             amount = form.amount.data
             amount = float(bleach.clean(str(amount), strip=True))
             current_user.balance += amount
+            print(f"/n/n/nmony deposit({current_user.balance})\n\n\n\n")
             transaction = Transaction(user_id=current_user.id, transaction_type='Deposit',
                                       amount=amount, balance=current_user.balance)
             transaction.hash = generate_transaction_hash(transaction)
             db.session.add(transaction)
             db.session.commit()
             flash(f'Deposited {amount:.2f} successfully.', 'success')
-            app.logger.info(f'User {current_user.username} deposited {amount:.2f}')
+            #app.logger.info(f'User {current_user.username} deposited {amount:.2f}')
+            print("/n/n/nmony deposit\n\n\n\n")
             return redirect(url_for('dashboard'))
+            
         except Exception as e:
             db.session.rollback()
-            app.logger.error(f'Error during deposit: {str(e)}')
+            #app.logger.error(f'Error during deposit: {str(e)}')
+            print("/n/n/nmony not deposit\n\n\n\n", e)
             flash('An error occurred during the deposit. Please try again.', 'error')
     return render_template('deposit.html', form=form)
 
@@ -556,7 +565,7 @@ def change_password(current_user):
 @admin_required
 def audit_log():
     logs = []
-    with open('logs/hamadabank.log', 'r') as log_file:
+    with open('logs/RupeeVaultbank.log', 'r') as log_file:
         logs = log_file.readlines()
     return render_template('audit_log.html', logs=logs)
 
@@ -607,7 +616,7 @@ def internal_error(error):
 def get_logs():
     try:
         logs = []
-        log_files = glob.glob('logs/hamadabank.log*')
+        log_files = glob.glob('logs/RupeeVaultbank.log*')
         
         app.logger.debug(f"Found log files: {log_files}")
 
@@ -657,22 +666,17 @@ def get_logs():
 
 if __name__ == '__main__':
     with app.app_context():
-        if not os.path.exists('Hamadabank.db'):
-            print("Database does not exist. Creating new database...")
-            db.create_all()
-            recreate_database()
-        else:
-            try:
-                User.query.first()
-            except Exception as e:
-                if 'no such column: user.is_admin' in str(e):
-                    print("Updating database schema...")
-                    recreate_database()
-                else:
-                    raise e
+        try:
+            User.query.first()
+        except Exception as e:
+            if 'no such column: user.is_admin' in str(e):
+                print("Updating database schema...")
+                recreate_database()
+            else:
+                raise e
                 
 
-    app.run(debug=False, host='0.0.0.0', port=5000)  # Run without SSL
+    app.run(debug=True, host='0.0.0.0', port=5000)  # Run without SSL
 
     # app.run(debug=False, host='0.0.0.0', port=5000)  # Run without SSL
     # app.run(debug=False, ssl_context='adhoc')  # Use 'adhoc' for development, proper SSL cert for production

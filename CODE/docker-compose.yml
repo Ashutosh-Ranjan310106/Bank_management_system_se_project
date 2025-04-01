@@ -16,4 +16,4 @@ services:
   db:
     image: sqlite:latest
     volumes:
-      - ./Hamadabank.db:/db/Hamadabank.db
+      - ./flask_bank.db:/db/flask_bank.db

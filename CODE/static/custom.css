@@ -3,10 +3,10 @@
 @import 'tailwindcss/utilities';
 
 :root {
-  --primary: #6D28D9;
-  --primary-dark: #5B21B6;
-  --secondary: #EC4899;
-  --secondary-dark: #DB2777;
+  --primary: #D94E28;
+  --primary-dark: #B6401F;
+  --secondary: #FF5722;
+  --secondary-dark: #E64A19;
 }
 
 .dark {
@@ -28,21 +28,17 @@ body {
 }
 
 .btn-primary {
-  @apply bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105;
+  @apply bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105;
 }
 
 .btn-secondary {
-  @apply bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105;
+  @apply bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105;
 }
 
 .input-field {
-  @apply w-full px-3 py-2 border rounded text-gray-700 dark:text-white bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-600;
+  @apply w-full px-3 py-2 border rounded text-gray-700 dark:text-white bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-600;
 }
-
 
 .card {
   @apply bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl;
 }
-
-
-
