@@ -2,25 +2,24 @@
 
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
-from functools import wraps
 from sqlalchemy.exc import IntegrityError
-from flask_wtf import FlaskForm, CSRFProtect
-from wtforms import StringField, PasswordField, SelectField, IntegerField, FloatField, BooleanField
-from wtforms.validators import DataRequired, Email, Length, NumberRange, Regexp
+from flask_wtf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import jwt
+from functools import wraps
 import logging
 from logging.handlers import RotatingFileHandler
 import bleach
-from flask_migrate import Migrate
 from flask_limiter.errors import RateLimitExceeded
 import re
 import glob
 from operator import itemgetter
+from model import *
+from functions import *
+from forms import *
+
 
 
 #================================================================================================================================================================
@@ -32,7 +31,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or 'your_jwt_secret_key'  # Use environment variable for production
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=30)  # Token expires after 30 minutes
 
-db = SQLAlchemy(app)
+db.init_app(app)
 #migrate = Migrate(app, db)
 csrf = CSRFProtect(app)
 limiter = Limiter(key_func=get_remote_address)
@@ -57,106 +56,6 @@ app.logger.info('flask_bank')
 
 
 #================================================================================================================================================================
-
-def recreate_database():
-    # Drop all tables
-    db.drop_all()
-    
-    # Create all tables
-    db.create_all()
-    
-    # Create admin user
-    admin_password = generate_password_hash('admin123')  # You should change this password
-    admin = User(username='admin', password=admin_password, first_name='Admin',
-                 last_name='User', phone='1234567890', city='Admin City',
-                 email='admin@example.com', account_type='admin', age=30, is_admin=True)
-    db.session.add(admin)
-    db.session.commit()
-    print("Database recreated and admin user added.")
-
-
-
-# Models
-#================================================================================================================================================================
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(500), nullable=False)
-    first_name = db.Column(db.String(80), nullable=False)
-    last_name = db.Column(db.String(80), nullable=False)
-    phone = db.Column(db.String(20), nullable=False)
-    city = db.Column(db.String(80), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    account_type = db.Column(db.String(10), nullable=False)
-    balance = db.Column(db.Float, default=0.0)
-    loan_amount = db.Column(db.Float, default=0.0)
-    age = db.Column(db.Integer, nullable=False)
-    is_admin = db.Column(db.Boolean, default=False)
-    failed_login_attempts = db.Column(db.Integer, default=0)
-    account_locked_until = db.Column(db.DateTime)
-
-
-#================================================================================================================================================================
-
-class Transaction(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    transaction_type = db.Column(db.String(20), nullable=False)
-    amount = db.Column(db.Float, nullable=False)
-    balance = db.Column(db.Float, nullable=False)
-    date = db.Column(db.DateTime, default=datetime.utcnow)
-    hash = db.Column(db.String(500), nullable=False)  # For integrity checking
-
-
-
-#================================================================================================================================================================
-
-class RegistrationForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=15)])
-    password = PasswordField('Password', validators=[DataRequired(), Length(min=8, max=15)])
-    first_name = StringField('First Name', validators=[DataRequired(), Length(max=15)])
-    last_name = StringField('Last Name', validators=[DataRequired(), Length(max=15)])
-    phone = StringField('Phone', validators=[DataRequired(), Regexp('^[0-9]{10,15}$', message='Phone number must be between 10 and 15 digits')])
-    city = StringField('City', validators=[DataRequired(), Length(max=15)])
-    email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
-    account_type = SelectField('Account Type', choices=[('savings', 'Savings'), ('current', 'Current'), ('islamic', 'Islamic')])
-    age = IntegerField('Age', validators=[DataRequired(), NumberRange(min=18, max=120)])
-
-#================================================================================================================================================================
-
-class AdminCreateUserForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=15)])
-    password = PasswordField('Password', validators=[DataRequired(), Length(min=8, max=15)])
-    first_name = StringField('First Name', validators=[DataRequired(), Length(max=15)])
-    last_name = StringField('Last Name', validators=[DataRequired(), Length(max=15)])
-    phone = StringField('Phone', validators=[DataRequired(), Regexp('^[0-9]{10,15}$', message='Phone number must be between 10 and 15 digits')])
-    city = StringField('City', validators=[DataRequired(), Length(max=15)])
-    email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
-    account_type = SelectField('Account Type', choices=[('savings', 'Savings'), ('current', 'Current'), ('islamic', 'Islamic')])
-    age = IntegerField('Age', validators=[DataRequired(), NumberRange(min=18, max=120)])
-    is_admin = BooleanField('Is Admin')
-
-
-
-
-
-#================================================================================================================================================================
-
-
-def generate_token(user_id):
-    return jwt.encode({'user_id': user_id, 'exp': datetime.utcnow() + timedelta(minutes=30)},
-                      app.config['JWT_SECRET_KEY'], algorithm='HS256')
-
-
-#================================================================================================================================================================
-
-
-def verify_token(token):
-    try:
-        data = jwt.decode(token, app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
-        return data['user_id']
-    except:
-        return None
 
 
 #================================================================================================================================================================
@@ -186,29 +85,9 @@ def token_required(f):
 def handle_rate_limit_exceeded(e):
     return render_template('rate_limit_exceeded.html'), 429
 
-#================================================================================================================================================================
-
-class DepositForm(FlaskForm):
-    amount = FloatField('Amount', validators=[DataRequired(), NumberRange(min=0.01, max=1000000)])
 
 
 
-#================================================================================================================================================================
-
-class WithdrawForm(FlaskForm):
-    amount = FloatField('Amount', validators=[DataRequired(), NumberRange(min=0.01, max=1000000)])
-
-
-#================================================================================================================================================================
-
-class LoanForm(FlaskForm):
-    amount = FloatField('Amount', validators=[DataRequired(), NumberRange(min=100, max=1000000)])
-    years = IntegerField('Years', validators=[DataRequired(), NumberRange(min=1, max=30)])
-    loan_type = SelectField('Loan Type', choices=[('education', 'Education'), ('car', 'Car'), ('home', 'Home'), ('personal', 'Personal')])
-
-
-
-#================================================================================================================================================================
 
 def admin_required(f):
     @wraps(f)
@@ -247,6 +126,14 @@ def log_request_info():
 
 
 
+
+
+
+
+
+
+
+
 #================================================================================================================================================================
 
 
@@ -255,11 +142,7 @@ def home():
     return render_template('home.html')
 
 
-#================================================================================================================================================================
 
-class LoginForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=15)])
-    password = PasswordField('Password', validators=[DataRequired(), Length(min=8, max=15)])
 
 #================================================================================================================================================================
 
@@ -280,10 +163,12 @@ def login():
             if user and check_password_hash(user.password, password):
                 user.failed_login_attempts = 0
                 db.session.commit()
-                token = generate_token(user.id)
+                token = generate_token(user.id, app)
                 session['token'] = token
                 flash('Logged in successfully.', 'success')
                 app.logger.info(f'User {username} logged in successfully')
+                messsage, subject = format_message([user.first_name +user.last_name ,str(datetime.now()), "+91-1800-123-4567"], "login_success")
+                send_email_message(user.email, messsage, subject)
                 if user.is_admin:
                     return redirect(url_for('admin_dashboard'))
                 return redirect(url_for('dashboard'))
@@ -294,6 +179,8 @@ def login():
                         user.account_locked_until = datetime.utcnow() + timedelta(minutes=15)
                     db.session.commit()
                 flash('Invalid username or password.', 'error')
+                messsage, subject = format_message([user.first_name + user.last_name ,str(datetime.now()), "+91-1800-123-4567"], "login_failed")
+                send_email_message(user.email, messsage, subject)
                 app.logger.warning(f'Failed login attempt for username: {username}')
         return render_template('login.html', form=form)
     except RateLimitExceeded:
@@ -338,6 +225,8 @@ def register():
                 )
                 db.session.add(new_user)
                 db.session.commit()
+                messsage, subject = format_message([new_user.first_name +new_user.last_name ,str(datetime.now()), "+91-1800-123-4567"], "account_creation")
+                send_email_message(new_user.email, messsage, subject)
                 flash('Account created successfully. Please log in.', 'success')
                 app.logger.info(f'New user registered: {form.username.data}')
                 return redirect(url_for('login'))
@@ -377,8 +266,9 @@ def deposit(current_user):
             db.session.add(transaction)
             db.session.commit()
             flash(f'Deposited {amount:.2f} successfully.', 'success')
-            #app.logger.info(f'User {current_user.username} deposited {amount:.2f}')
-            print("/n/n/nmony deposit\n\n\n\n")
+            app.logger.info(f'User {current_user.username} deposited {amount:.2f}')
+            messsage, subject = format_message([current_user.first_name +current_user.last_name ,str(datetime.now()), "+91-1800-123-4567"], "transaction_received")
+            send_email_message(current_user.email, messsage, subject)
             return redirect(url_for('dashboard'))
             
         except Exception as e:
@@ -408,6 +298,8 @@ def withdraw(current_user):
                 db.session.commit()
                 flash(f'Withdrawn {amount:.2f} successfully.', 'success')
                 app.logger.info(f'User {current_user.username} withdrew {amount:.2f}')
+                messsage, subject = format_message([current_user.first_name +current_user.last_name ,str(datetime.now()), "+91-1800-123-4567"], "transaction_success")
+                send_email_message(current_user.email, messsage, subject)
             else:
                 flash('Insufficient funds.', 'error')
             return redirect(url_for('dashboard'))
@@ -469,6 +361,8 @@ def loan(current_user):
 
             flash(f'Loan of {amount:.2f} approved. Monthly payment: {monthly_payment:.2f}', 'success')
             app.logger.info(f'User {current_user.username} took a loan of {amount:.2f}')
+            messsage, subject = format_message([amount , amount, "+91-1800-123-4567"], "loan_approved")
+            send_email_message(current_user.email, messsage, subject)
             return redirect(url_for('dashboard'))
         except Exception as e:
             db.session.rollback()
@@ -517,6 +411,8 @@ def admin_create_user():
             db.session.commit()
             flash('User created successfully.', 'success')
             app.logger.info(f'Admin created new user: {form.username.data}')
+            messsage, subject = format_message([new_user.first_name +new_user.last_name ,str(datetime.now()), "+91-1800-123-4567"], "account_creation")
+            send_email_message(new_user.email, messsage, subject)
             return redirect(url_for('admin_dashboard'))
         except IntegrityError:
             db.session.rollback()
@@ -555,6 +451,8 @@ def change_password(current_user):
             db.session.commit()
             flash('Password changed successfully.', 'success')
             app.logger.info(f'User {current_user.username} changed their password')
+            messsage, subject = format_message([str(datetime.now())], "password_change")
+            send_email_message(current_user.email, messsage, subject)
             return redirect(url_for('profile'))
 
     return render_template('change_password.html')
@@ -577,22 +475,7 @@ def get_balance(current_user):
     return jsonify({'balance': current_user.balance})
 
 
-#================================================================================================================================================================
 
-
-def generate_transaction_hash(transaction):
-    """Generate a hash for the transaction to ensure integrity."""
-    data = f"{transaction.user_id}{transaction.transaction_type}{transaction.amount}{transaction.balance}{transaction.date}"
-    return generate_password_hash(data)
-
-
-#================================================================================================================================================================
-
-
-def verify_transaction_integrity(transaction):
-    """Verify the integrity of a transaction by checking its hash."""
-    data = f"{transaction.user_id}{transaction.transaction_type}{transaction.amount}{transaction.balance}{transaction.date}"
-    return check_password_hash(transaction.hash, data)
 
 
 #================================================================================================================================================================
@@ -614,9 +497,10 @@ def internal_error(error):
 @app.route('/api/admin/logs')
 @admin_required
 def get_logs():
+    print("working")
     try:
         logs = []
-        log_files = glob.glob('logs/RupeeVaultbank.log*')
+        log_files = glob.glob('logs/flask_bank.log*')
         
         app.logger.debug(f"Found log files: {log_files}")
 
