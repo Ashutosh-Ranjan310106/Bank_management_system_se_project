@@ -10,7 +10,7 @@ class RegistrationForm(FlaskForm):
     phone = StringField('Phone', validators=[DataRequired(), Regexp('^[0-9]{10,15}$', message='Phone number must be between 10 and 15 digits')])
     city = StringField('City', validators=[DataRequired(), Length(max=15)])
     email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
-    account_type = SelectField('Account Type', choices=[('savings', 'Savings'), ('current', 'Current'), ('islamic', 'Islamic')])
+    account_type = SelectField('Account Type', choices=[('savings', 'Savings'), ('current', 'Current')])
     age = IntegerField('Age', validators=[DataRequired(), NumberRange(min=18, max=120)])
 
 #================================================================================================================================================================

@@ -30,7 +30,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:password@localhost
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or 'your_jwt_secret_key'  # Use environment variable for production
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=30)  # Token expires after 30 minutes
-
 db.init_app(app)
 #migrate = Migrate(app, db)
 csrf = CSRFProtect(app)
@@ -185,9 +184,9 @@ def login():
                     if user.failed_login_attempts >= 5:
                         user.account_locked_until = datetime.utcnow() + timedelta(minutes=15)
                     db.session.commit()
+                    messsage, subject = format_message([user.account_number ,str(datetime.now()), "+91-1800-123-4567"], "login_failed")
+                    send_email_message(user.email, messsage, subject)
                 flash('Invalid username or password.', 'error')
-                messsage, subject = format_message([user.account_number ,str(datetime.now()), "+91-1800-123-4567"], "login_failed")
-                send_email_message(user.email, messsage, subject)
                 app.logger.warning(f'Failed login attempt for username: {username}')
         return render_template('login.html', form=form)
     except RateLimitExceeded:
@@ -337,13 +336,14 @@ def transactions(current_user):
 @token_required
 def loan(current_user):
     form = LoanForm()
+    print("in")
     if form.validate_on_submit():
         try:
             amount = form.amount.data
             amount = float(bleach.clean(str(amount), strip=True))
             years = form.years.data
             loan_type = form.loan_type.data
-
+            print(123)
             interest_rates = {
                 'education': 0.01,
                 'car': 0.06,
@@ -358,18 +358,22 @@ def loan(current_user):
             monthly_rate = interest_rate / 12
             months = years * 12
             monthly_payment = (amount * monthly_rate * (1 + monthly_rate) ** months) / ((1 + monthly_rate) ** months - 1)
-
-            current_user.balance += amount
-            current_user.loan_amount += amount
-            transaction = Transaction(user_id=current_user.id, transaction_type='Loan',
-                                      amount=amount, balance=current_user.balance)
-            transaction.hash = generate_transaction_hash(transaction)
-            db.session.add(transaction)
+            print(12332)
+            #current_user.balance += amount
+            #current_user.loan_amount += amount
+            loan = Loan(account_number= current_user.account_number,
+                        loan_type= loan_type,
+                        amount = amount,
+                        years = years,
+                        monthly_payment = monthly_payment
+                         )
+            print(1233245)
+            db.session.add(loan)
             db.session.commit()
-
+            print(1233267567657)
             flash(f'Loan of {amount:.2f} approved. Monthly payment: {monthly_payment:.2f}', 'success')
             app.logger.info(f'User {current_user.username} took a loan of {amount:.2f}')
-            messsage, subject = format_message([amount , amount, "+91-1800-123-4567"], "loan_approved")
+            messsage, subject = format_message([amount , monthly_payment, "+91-1800-123-4567"], "loan_approved")
             send_email_message(current_user.email, messsage, subject)
             return redirect(url_for('dashboard'))
         except Exception as e:
@@ -385,7 +389,10 @@ def loan(current_user):
 @app.route('/admin/dashboard')
 @admin_required
 def admin_dashboard():
-    users = User.query.all()
+    users = {"Verified":[], "NonVerified":[]}
+    users["Verified"] = User.query.filter_by(is_verified = True).all()
+    users["NonVerified"] = User.query.filter_by(is_verified = False).all()
+    print("\n\n\n",users)
     return render_template('admin_dashboard.html', users=users)
 
 
@@ -430,20 +437,62 @@ def admin_create_user():
 
     return render_template('admin_create_user.html', form=form)
 
+#===============================================================================================================================================================
+@app.route('/admin/delete/user/<string:account_no>', methods =['POST'])
+@admin_required
+def delete_user(account_no):
+        user = db.session.query(User).filter_by(account_number=account_no).first()
+        if user:
+            db.session.delete(user)
+            db.session.commit()
+            flash("User deleted successfully!", "success")
+        else:
+            flash("User not found!", "danger")
+        return redirect(url_for('admin_dashboard'))
+
 #================================================================================================================================================================
 
-@app.route('/admin/verify/user')
+@app.route('/admin/verify/user/<string:account_no>', methods =['GET', 'POST'])
 @admin_required
-def verify_user():
-    users = db.session.query(User).filter(User.is_verified == False).all()
-    return render_template('admin_dashboard.html', users=users)
+def verify_edit_user(account_no):
+        if request.method == 'GET':
+            user = db.session.query(User).filter(User.account_number == account_no).first()
+            if user:
+                return render_template('user_page.html', user=user)
+            else:
+                flash("User not found", "success")
+                return redirect(url_for('admin_dashboard'))
+        else:
+            user = db.session.query(User).filter(User.account_number == account_no).first()
+            if user:
+                user.is_verified = True
+                flash("user is verified", "success")
+                db.session.commit()
+                return render_template('user_page.html', user=user)
+            else:
+                flash("User not found", "success")
+                return redirect(url_for('admin_dashboard'))
 #================================================================================================================================================================
-
-@app.route('/admin/verify/loan')
+@app.route('/admin/verify/loan', methods=['GET', 'POST'])
+@app.route('/admin/verify/loan/<int:id>', methods = ['POST'])
 @admin_required
-def verify_loan():
-    loan_transaction = db.session.query(Transaction).filter(Transaction.transaction_type == 'Loan').all()
-    return render_template('transactions.html', transactions=loan_transaction)
+def verify_loan(id = None):
+    if request.method == 'POST':
+        if id:
+            loan_transaction = db.session.query(Loan).filter(Loan.id == id).first()
+            if loan_transaction:
+
+                user = User.query.filter(User.account_number == loan_transaction.account_number).first()
+                user.balance += loan_transaction.amount
+                loan_transaction.is_approved = True
+                db.session.commit()
+            else:
+                flash("loan not found","error")
+        
+
+    loan_transaction = db.session.query(Loan).all()
+    return render_template('admin_loan.html', transactions=loan_transaction)
+
 #================================================================================================================================================================
 
 @app.route('/profile')
