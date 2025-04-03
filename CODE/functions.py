@@ -9,6 +9,7 @@ from email.mime.text import MIMEText
 import random
 import os
 import smtplib
+import hashlib
 from dotenv import load_dotenv
 
 # Load variables from .env
@@ -39,10 +40,25 @@ def recreate_database():
     admin_password = generate_password_hash('admin123')  # You should change this password
     admin = User(username='admin', password=admin_password, first_name='Admin',
                  last_name='User', phone='1234567890', city='Admin City',
-                 email='admin@example.com', account_type='admin', age=30, is_admin=True)
+                 email='admin@example.com', account_type='admin', age=30, is_admin=True,is_verified = True, account_number = genrate_account_number('admin', 'admin'))
     db.session.add(admin)
     db.session.commit()
     print("Database recreated and admin user added.")
+#================================================================================================================================================================
+
+
+def genrate_account_number(username, account_type):
+    print(datetime.now())
+    date = datetime.now().strftime('%Y%m%d_%H%M%S')
+    data = f"{username.lower()}-{account_type.lower()}-{date}"
+    
+    # Create a hash
+    hash_value = hashlib.md5(data.encode()).hexdigest()
+    
+    # Extract first 12 digits of the hash as the account number
+    account_number = hash_value[:12].upper()  # Convert to uppercase for consistency
+    
+    return account_number
 
 
 

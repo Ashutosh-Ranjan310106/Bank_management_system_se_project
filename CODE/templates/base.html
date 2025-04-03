@@ -91,6 +91,19 @@
             </nav>
         </div>
         <div class="absolute inset-0 bg-pattern opacity-10"></div>
+        <div id="flash-messages" class="fixed top-5 right-5 z-50 space-y-2">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }} bg-{{ 'green-500' if category=='success' else 'red-500' }} text-white px-6 py-3 rounded-lg shadow-md flex items-center justify-between transition-all duration-500 transform translate-y-[-20px] opacity-0"
+                            role="alert">
+                            <span class="flex-1">{{ message }}</span>
+                            <button class="ml-4 bg-white text-gray-800 font-bold px-3 py-1 rounded focus:outline-none close-btn">OK</button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
     </header>
     <main class="flex-grow container mx-auto px-4 py-8">
         {% block content %}{% endblock %}
@@ -124,4 +137,28 @@
     }
     </style>
 </body>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const flashMessages = document.querySelectorAll(".flash-message");
+
+        flashMessages.forEach((msg, index) => {
+            setTimeout(() => {
+                msg.classList.remove("opacity-0", "translate-y-[-20px]");
+                msg.classList.add("opacity-100", "translate-y-0");
+            }, 100 * index);
+
+            // Auto-hide after 4 seconds
+            setTimeout(() => {
+                msg.classList.add("opacity-0", "translate-y-[-20px]");
+                setTimeout(() => msg.remove(), 500);
+            }, 4000);
+
+            // Close button functionality
+            msg.querySelector(".close-btn").addEventListener("click", () => {
+                msg.classList.add("opacity-0", "translate-y-[-20px]");
+                setTimeout(() => msg.remove(), 500);
+            });
+        });
+    });
+</script>
 </html>

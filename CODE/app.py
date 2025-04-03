@@ -71,6 +71,11 @@ def token_required(f):
         try:
             data = jwt.decode(token, app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
             current_user = User.query.get(data['user_id'])
+            if not current_user.is_verified:
+                print("an un verifed user")
+                flash('your account is under process we will notify when it is verified.', 'error')
+
+                return redirect(url_for('login'))
         except:
             flash('Invalid session. Please log in again.', 'error')
             return redirect(url_for('login'))
@@ -159,7 +164,9 @@ def login():
             if user and user.account_locked_until and user.account_locked_until > datetime.utcnow():
                 flash('Account is locked. Please try again later.', 'error')
                 return render_template('login.html', form=form)
-            
+            if user and not user.is_verified:
+                flash('your account is under process we will notifi when it is verified.', 'error')
+                return render_template('login.html', form=form)
             if user and check_password_hash(user.password, password):
                 user.failed_login_attempts = 0
                 db.session.commit()
@@ -179,7 +186,7 @@ def login():
                         user.account_locked_until = datetime.utcnow() + timedelta(minutes=15)
                     db.session.commit()
                 flash('Invalid username or password.', 'error')
-                messsage, subject = format_message([user.first_name + user.last_name ,str(datetime.now()), "+91-1800-123-4567"], "login_failed")
+                messsage, subject = format_message([user.account_number ,str(datetime.now()), "+91-1800-123-4567"], "login_failed")
                 send_email_message(user.email, messsage, subject)
                 app.logger.warning(f'Failed login attempt for username: {username}')
         return render_template('login.html', form=form)
@@ -215,17 +222,18 @@ def register():
                 new_user = User(
                     username=form.username.data,
                     password=hashed_password,
+                    account_number = genrate_account_number(form.username.data, form.account_type.data),
                     first_name=form.first_name.data,
                     last_name=form.last_name.data,
                     phone=form.phone.data,
                     city=form.city.data,
                     email=form.email.data,
                     account_type=form.account_type.data,
-                    age=form.age.data
+                    age=form.age.data,
                 )
                 db.session.add(new_user)
                 db.session.commit()
-                messsage, subject = format_message([new_user.first_name +new_user.last_name ,str(datetime.now()), "+91-1800-123-4567"], "account_creation")
+                messsage, subject = format_message([new_user.account_number ,str(datetime.now()), "+91-1800-123-4567"], "account_creation")
                 send_email_message(new_user.email, messsage, subject)
                 flash('Account created successfully. Please log in.', 'success')
                 app.logger.info(f'New user registered: {form.username.data}')
@@ -267,7 +275,7 @@ def deposit(current_user):
             db.session.commit()
             flash(f'Deposited {amount:.2f} successfully.', 'success')
             app.logger.info(f'User {current_user.username} deposited {amount:.2f}')
-            messsage, subject = format_message([current_user.first_name +current_user.last_name ,str(datetime.now()), "+91-1800-123-4567"], "transaction_received")
+            messsage, subject = format_message([current_user.account_number ,str(datetime.now()), "+91-1800-123-4567"], "transaction_received")
             send_email_message(current_user.email, messsage, subject)
             return redirect(url_for('dashboard'))
             
@@ -298,7 +306,7 @@ def withdraw(current_user):
                 db.session.commit()
                 flash(f'Withdrawn {amount:.2f} successfully.', 'success')
                 app.logger.info(f'User {current_user.username} withdrew {amount:.2f}')
-                messsage, subject = format_message([current_user.first_name +current_user.last_name ,str(datetime.now()), "+91-1800-123-4567"], "transaction_success")
+                messsage, subject = format_message([current_user.account_number ,str(datetime.now()), "+91-1800-123-4567"], "transaction_success")
                 send_email_message(current_user.email, messsage, subject)
             else:
                 flash('Insufficient funds.', 'error')
@@ -405,13 +413,14 @@ def admin_create_user():
                 email=form.email.data,
                 account_type=form.account_type.data,
                 age=form.age.data,
-                is_admin=form.is_admin.data
+                is_admin=form.is_admin.data,
+                is_verified=True
             )
             db.session.add(new_user)
             db.session.commit()
             flash('User created successfully.', 'success')
             app.logger.info(f'Admin created new user: {form.username.data}')
-            messsage, subject = format_message([new_user.first_name +new_user.last_name ,str(datetime.now()), "+91-1800-123-4567"], "account_creation")
+            messsage, subject = format_message([new_user.account_number ,str(datetime.now()), "+91-1800-123-4567"], "account_creation")
             send_email_message(new_user.email, messsage, subject)
             return redirect(url_for('admin_dashboard'))
         except IntegrityError:
@@ -421,7 +430,20 @@ def admin_create_user():
 
     return render_template('admin_create_user.html', form=form)
 
+#================================================================================================================================================================
 
+@app.route('/admin/verify/user')
+@admin_required
+def verify_user():
+    users = db.session.query(User).filter(User.is_verified == False).all()
+    return render_template('admin_dashboard.html', users=users)
+#================================================================================================================================================================
+
+@app.route('/admin/verify/loan')
+@admin_required
+def verify_loan():
+    loan_transaction = db.session.query(Transaction).filter(Transaction.transaction_type == 'Loan').all()
+    return render_template('transactions.html', transactions=loan_transaction)
 #================================================================================================================================================================
 
 @app.route('/profile')
