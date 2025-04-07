@@ -30,6 +30,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:password@localhost
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or 'your_jwt_secret_key'  # Use environment variable for production
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=30)  # Token expires after 30 minutes
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB max file size
+app.config['UPLOAD_EXTENSIONS'] = ['.jpg', '.jpeg', '.png']
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
 db.init_app(app)
 #migrate = Migrate(app, db)
 csrf = CSRFProtect(app)
@@ -48,11 +51,10 @@ file_handler = RotatingFileHandler('logs/flask_bank.log', maxBytes=10240, backup
 file_handler.setFormatter(logging.Formatter(
     '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
 ))
-file_handler.setLevel(logging.INFO)
 app.logger.addHandler(file_handler)
-app.logger.setLevel(logging.INFO)
-app.logger.info('flask_bank')
-
+#app.logger.setLevel(logging.INFO)
+app.logger.setLevel(logging.DEBUG)
+#app.logger.info('app started')
 
 #================================================================================================================================================================
 
@@ -69,7 +71,7 @@ def token_required(f):
             return redirect(url_for('login'))
         try:
             data = jwt.decode(token, app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
-            current_user = User.query.get(data['user_id'])
+            current_user = User.query.get(data['account_number'])
             if not current_user.is_verified:
                 print("an un verifed user")
                 flash('your account is under process we will notify when it is verified.', 'error')
@@ -102,14 +104,14 @@ def admin_required(f):
             return redirect(url_for('login'))
         try:
             data = jwt.decode(token, app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
-            user = User.query.get(data['user_id'])
+            user = User.query.get(data['account_number'])
             if user:
                 print(f"Admin access granted for user: {user.username}")
             if not user or not user.is_admin:
                 flash('You do not have permission to access this page.', 'error')
                 return redirect(url_for('dashboard'))
         except Exception as e:
-            print(f"Admin access denied: {e}")
+            print(f"Admin access denied: >>>>>>>>>>>>>>{e}\n\n\n")
             flash('You do not have permission to access this page.', 'error')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
@@ -120,10 +122,13 @@ def admin_required(f):
 
 @app.before_request
 def log_request_info():
-    app.logger.info(
+    if request.path.startswith("/static/"):
+        return
+    user_agent = user_agent = request.headers.get("User-Agent", "Unknown")
+    app.logger.debug(
     "Request Info: IP=%s, UserAgent=%s, Method=%s, Path=%s",
     request.remote_addr,
-    request.user_agent.string if request.user_agent else "Unknown",
+    user_agent,
     request.method,
     request.path
     )
@@ -156,10 +161,10 @@ def login():
     try:
         form = LoginForm()
         if form.validate_on_submit():
-            username = form.username.data
+            account_no = form.account_no.data
             password = form.password.data
-            user = User.query.filter_by(username=username).first()
-            
+            user = User.query.get(account_no)
+            print(user, account_no,'\n\n\n\n')
             if user and user.account_locked_until and user.account_locked_until > datetime.utcnow():
                 flash('Account is locked. Please try again later.', 'error')
                 return render_template('login.html', form=form)
@@ -169,10 +174,10 @@ def login():
             if user and check_password_hash(user.password, password):
                 user.failed_login_attempts = 0
                 db.session.commit()
-                token = generate_token(user.id, app)
+                token = generate_token(user.account_number, app)
                 session['token'] = token
                 flash('Logged in successfully.', 'success')
-                app.logger.info(f'User {username} logged in successfully')
+                app.logger.info(f'User {account_no} logged in successfully')
                 messsage, subject = format_message([user.first_name +user.last_name ,str(datetime.now()), "+91-1800-123-4567"], "login_success")
                 send_email_message(user.email, messsage, subject)
                 if user.is_admin:
@@ -187,7 +192,7 @@ def login():
                     messsage, subject = format_message([user.account_number ,str(datetime.now()), "+91-1800-123-4567"], "login_failed")
                     send_email_message(user.email, messsage, subject)
                 flash('Invalid username or password.', 'error')
-                app.logger.warning(f'Failed login attempt for username: {username}')
+                app.logger.warning(f'Failed login attempt for username: {account_no}')
         return render_template('login.html', form=form)
     except RateLimitExceeded:
         app.logger.warning(f'Rate limit exceeded for login from IP: {request.remote_addr}')
@@ -218,6 +223,14 @@ def register():
 
             try:
                 hashed_password = generate_password_hash(form.password.data)
+                aadhaar = form.aadhaar.data
+                pan_card = form.pan_card.data
+                aadhaar_url = genrate_document_url('aadhaar')
+                pan_url = genrate_document_url('pan_card')
+                print('aadhaar=',os.path.join(app.config['UPLOAD_FOLDER'], aadhaar_url))
+                print('pan_card=',os.path.join(app.config['UPLOAD_FOLDER'], pan_url))
+                aadhaar.save(os.path.join(app.config['UPLOAD_FOLDER'], aadhaar_url))
+                pan_card.save(os.path.join(app.config['UPLOAD_FOLDER'], pan_url))
                 new_user = User(
                     username=form.username.data,
                     password=hashed_password,
@@ -229,7 +242,10 @@ def register():
                     email=form.email.data,
                     account_type=form.account_type.data,
                     age=form.age.data,
+                    aadhaar_url = aadhaar_url,
+                    pan_url = pan_url
                 )
+                print('\n\n\n\n\n',new_user)
                 db.session.add(new_user)
                 db.session.commit()
                 messsage, subject = format_message([new_user.account_number ,str(datetime.now()), "+91-1800-123-4567"], "account_creation")
@@ -264,11 +280,11 @@ def deposit(current_user):
     if form.validate_on_submit():
         try:
             amount = form.amount.data
+            description = form.description.data
             amount = float(bleach.clean(str(amount), strip=True))
             current_user.balance += amount
-            print(f"/n/n/nmony deposit({current_user.balance})\n\n\n\n")
-            transaction = Transaction(user_id=current_user.id, transaction_type='Deposit',
-                                      amount=amount, balance=current_user.balance)
+            transaction = Transaction(account_number=current_user.account_number, transaction_type='Deposit',
+                                      amount=amount, balance_after=current_user.balance, description=description)
             transaction.hash = generate_transaction_hash(transaction)
             db.session.add(transaction)
             db.session.commit()
@@ -295,11 +311,12 @@ def withdraw(current_user):
     if form.validate_on_submit():
         try:
             amount = form.amount.data
+            description = form.description.data
             amount = float(bleach.clean(str(amount), strip=True))
             if current_user.balance >= amount:
                 current_user.balance -= amount
-                transaction = Transaction(user_id=current_user.id, transaction_type='Withdraw',
-                                          amount=-amount, balance=current_user.balance)
+                transaction = Transaction(account_number=current_user.account_number, transaction_type='withdraw',
+                            amount=amount, balance_after=current_user.balance, description=description)
                 transaction.hash = generate_transaction_hash(transaction)
                 db.session.add(transaction)
                 db.session.commit()
@@ -321,7 +338,7 @@ def withdraw(current_user):
 @app.route('/transactions')
 @token_required
 def transactions(current_user):
-    user_transactions = Transaction.query.filter_by(user_id=current_user.id).order_by(Transaction.date.desc()).all()
+    user_transactions = Transaction.query.filter_by(account_number=current_user.account_number).order_by(Transaction.date.desc()).all()
     for transaction in user_transactions:
         if not verify_transaction_integrity(transaction):
             flash('Warning: Some transactions may have been tampered with.', 'error')
@@ -329,21 +346,27 @@ def transactions(current_user):
             break
     return render_template('transactions.html', transactions=user_transactions)
 
-
 #================================================================================================================================================================
 
 @app.route('/loan', methods=['GET', 'POST'])
 @token_required
 def loan(current_user):
+    loan_transaction = Loan.query.filter_by(account_number=current_user.account_number).all()
+    return render_template('user_loan.html', loans=loan_transaction)
+#================================================================================================================================================================
+
+@app.route('/loan/apply', methods=['GET', 'POST'])
+@token_required
+def apply_loan(current_user):
     form = LoanForm()
-    print("in")
+    print(form.amount.data, form.years.data)
     if form.validate_on_submit():
         try:
             amount = form.amount.data
             amount = float(bleach.clean(str(amount), strip=True))
             years = form.years.data
             loan_type = form.loan_type.data
-            print(123)
+            print(123, '\n\n\n\n')
             interest_rates = {
                 'education': 0.01,
                 'car': 0.06,
@@ -353,12 +376,11 @@ def loan(current_user):
             interest_rate = interest_rates.get(loan_type)
             if interest_rate is None:
                 flash('Invalid loan type.', 'error')
-                return redirect(url_for('loan'))
+                return redirect(url_for('apply_loan'))
 
             monthly_rate = interest_rate / 12
             months = years * 12
             monthly_payment = (amount * monthly_rate * (1 + monthly_rate) ** months) / ((1 + monthly_rate) ** months - 1)
-            print(12332)
             #current_user.balance += amount
             #current_user.loan_amount += amount
             loan = Loan(account_number= current_user.account_number,
@@ -367,11 +389,10 @@ def loan(current_user):
                         years = years,
                         monthly_payment = monthly_payment
                          )
-            print(1233245)
             db.session.add(loan)
             db.session.commit()
             print(1233267567657)
-            flash(f'Loan of {amount:.2f} approved. Monthly payment: {monthly_payment:.2f}', 'success')
+            flash(f'request for Loan of {amount:.2f} is succesfully processed.  Monthly payment: {monthly_payment:.2f}', 'success')
             app.logger.info(f'User {current_user.username} took a loan of {amount:.2f}')
             messsage, subject = format_message([amount , monthly_payment, "+91-1800-123-4567"], "loan_approved")
             send_email_message(current_user.email, messsage, subject)
@@ -380,8 +401,8 @@ def loan(current_user):
             db.session.rollback()
             app.logger.error(f'Error during loan application: {str(e)}')
             flash('An error occurred during the loan application. Please try again.', 'error')
-
-    return render_template('loan.html', form=form)
+    print(234,'\n\n\n')
+    return render_template('apply_loan.html', form=form)
 
 
 #================================================================================================================================================================
@@ -398,7 +419,7 @@ def admin_dashboard():
 
 #================================================================================================================================================================
 
-@app.route('/admin/create_user', methods=['GET', 'POST'])
+@app.route('/admin/user/create', methods=['GET', 'POST'])
 @admin_required
 def admin_create_user():
     form = AdminCreateUserForm()
@@ -423,6 +444,7 @@ def admin_create_user():
                 is_admin=form.is_admin.data,
                 is_verified=True
             )
+            new_user.account_number = genrate_account_number(form.username.data, form.account_type.data)
             db.session.add(new_user)
             db.session.commit()
             flash('User created successfully.', 'success')
@@ -438,7 +460,7 @@ def admin_create_user():
     return render_template('admin_create_user.html', form=form)
 
 #===============================================================================================================================================================
-@app.route('/admin/delete/user/<string:account_no>', methods =['POST'])
+@app.route('/admin/user/delete/<string:account_no>', methods =['POST'])
 @admin_required
 def delete_user(account_no):
         user = db.session.query(User).filter_by(account_number=account_no).first()
@@ -451,8 +473,19 @@ def delete_user(account_no):
         return redirect(url_for('admin_dashboard'))
 
 #================================================================================================================================================================
+@app.route('/admin/user/transaction<string:account_no>', methods =['POST'])
+@admin_required
+def view_user_transaction(account_no):
+        transactions = Transaction.query.filter_by(account_number=account_no).all()
+        if transactions:
+            return render_template('transactions.html', transactions=transactions)
+        else:
+            flash("no transaction found!", "danger")
+        return redirect(url_for('admin_dashboard'))
 
-@app.route('/admin/verify/user/<string:account_no>', methods =['GET', 'POST'])
+#================================================================================================================================================================
+
+@app.route('/admin/user/verify/<string:account_no>', methods =['GET', 'POST'])
 @admin_required
 def verify_edit_user(account_no):
         if request.method == 'GET':
@@ -473,32 +506,47 @@ def verify_edit_user(account_no):
                 flash("User not found", "success")
                 return redirect(url_for('admin_dashboard'))
 #================================================================================================================================================================
-@app.route('/admin/verify/loan', methods=['GET', 'POST'])
-@app.route('/admin/verify/loan/<int:id>', methods = ['POST'])
+@app.route('/admin/approve/loan/', methods=['GET', 'POST'])
 @admin_required
-def verify_loan(id = None):
+def approve_loan():
     if request.method == 'POST':
-        if id:
-            loan_transaction = db.session.query(Loan).filter(Loan.id == id).first()
-            if loan_transaction:
-
-                user = User.query.filter(User.account_number == loan_transaction.account_number).first()
-                user.balance += loan_transaction.amount
-                loan_transaction.is_approved = True
-                db.session.commit()
+        id = request.args.get('id', None)
+        approved = request.args.get('approved', 0)
+        if id and approved:
+            loan_transaction = Loan.query.get(id)
+            print(id,approved,'\n\n\n')
+            if loan_transaction and loan_transaction.is_approved != -1:
+                if approved:
+                    user = User.query.filter(User.account_number == loan_transaction.account_number).first()
+                    user.balance += loan_transaction.amount
+                    user.loan_amount += loan_transaction.amount
+                    loan_transaction.is_approved = 1
+                    transaction = Transaction(account_number=user.account_number, amount=loan_transaction.amount, description='loan approved', balance_after=user.balance, transaction_type='Loan')
+                    transaction.hash = generate_transaction_hash(transaction)
+                    loan_transaction.transaction_id = transaction.id
+                    db.session.add(transaction)
+                    flash("loan approved","success")
+                    db.session.commit()
+                else:
+                    loan_transaction.is_approved = -1
+                    flash("loan rejected","success")
+                    db.session.commit()
             else:
                 flash("loan not found","error")
-        
-
-    loan_transaction = db.session.query(Loan).all()
-    return render_template('admin_loan.html', transactions=loan_transaction)
+        return redirect(url_for('approve_loan'))
+    loan_transaction = Loan.query.filter().all()
+    return render_template('admin_loan.html', loans=loan_transaction)
 
 #================================================================================================================================================================
 
 @app.route('/profile')
 @token_required
 def profile(current_user):
-    return render_template('profile.html', user=current_user)
+    aadhaar_url = app.config['UPLOAD_FOLDER']+'/'+current_user.aadhaar_url
+    pan_url = app.config['UPLOAD_FOLDER']+'/'+current_user.pan_url
+
+    print(repr(pan_url)) 
+    return render_template('profile.html', user=current_user, aadhar_image_url = aadhaar_url.strip() , pan_image_url = pan_url.strip() )
 
 
 #================================================================================================================================================================
@@ -618,6 +666,9 @@ def get_logs():
 
 
 #================================================================================================================================================================
+for rule in app.url_map.iter_rules():
+    methods = ','.join(rule.methods)
+    print(f"{rule.endpoint:30s} | {methods:20s} | {rule}")
 
 if __name__ == '__main__':
     with app.app_context():

@@ -1,6 +1,7 @@
 from wtforms import StringField, PasswordField, SelectField, IntegerField, FloatField, BooleanField
 from wtforms.validators import DataRequired, Email, Length, NumberRange, Regexp
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed, FileRequired
 
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=15)])
@@ -12,6 +13,15 @@ class RegistrationForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
     account_type = SelectField('Account Type', choices=[('savings', 'Savings'), ('current', 'Current')])
     age = IntegerField('Age', validators=[DataRequired(), NumberRange(min=18, max=120)])
+    # New fields for document uploads
+    aadhaar = FileField('Aadhaar Card', validators=[
+        FileRequired(message='Aadhaar card is required.'),
+        FileAllowed(['jpg', 'png', 'jpeg', 'pdf'], 'Images or PDFs only!')
+    ])
+    pan_card = FileField('PAN Card', validators=[
+        FileRequired(message='PAN card is required.'),
+        FileAllowed(['jpg', 'png', 'jpeg', 'pdf'], 'Images or PDFs only!')
+    ])
 
 #================================================================================================================================================================
 
@@ -32,6 +42,7 @@ class AdminCreateUserForm(FlaskForm):
 
 class DepositForm(FlaskForm):
     amount = FloatField('Amount', validators=[DataRequired(), NumberRange(min=0.01, max=1000000)])
+    description = StringField('description')
 
 
 
@@ -39,7 +50,7 @@ class DepositForm(FlaskForm):
 
 class WithdrawForm(FlaskForm):
     amount = FloatField('Amount', validators=[DataRequired(), NumberRange(min=0.01, max=1000000)])
-
+    description = StringField('description')
 
 #================================================================================================================================================================
 
@@ -52,5 +63,5 @@ class LoanForm(FlaskForm):
 
 #================================================================================================================================================================
 class LoginForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=15)])
+    account_no = StringField('Account Number', validators=[DataRequired(), Length(min=12, max=12)])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=8, max=15)])

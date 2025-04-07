@@ -40,7 +40,7 @@ def recreate_database():
     admin_password = generate_password_hash('admin123')  # You should change this password
     admin = User(username='admin', password=admin_password, first_name='Admin',
                  last_name='User', phone='1234567890', city='Admin City',
-                 email='admin@example.com', account_type='admin', age=30, is_admin=True,is_verified = True, account_number = genrate_account_number('admin', 'admin'))
+                 email='admin@example.com', account_type='admin', age=30, is_admin=True,is_verified = True, account_number = genrate_account_number('admin', 'admin'), aadhaar_url = 'qwert', pan_url='qwert')
     db.session.add(admin)
     db.session.commit()
     print("Database recreated and admin user added.")
@@ -60,13 +60,28 @@ def genrate_account_number(username, account_type):
     
     return account_number
 
+#================================================================================================================================================================
+
+
+def genrate_document_url(file_type):
+    print(datetime.now())
+    date = datetime.now().strftime('%Y%m%d_%H%M%S')
+    data = f"{file_type.lower()}{date}"
+    
+    # Create a hash
+    hash_value = hashlib.md5(data.encode()).hexdigest()
+    
+    # Extract first 12 digits of the hash as the account number
+    url = hash_value[:10].lower()+'.png'  # Convert to uppercase for consistency
+    
+    return url
 
 
 #================================================================================================================================================================
 
 
-def generate_token(user_id, app):
-    return jwt.encode({'user_id': user_id, 'exp': datetime.utcnow() + timedelta(minutes=30)},
+def generate_token(account_number, app):
+    return jwt.encode({'account_number': account_number, 'exp': datetime.utcnow() + timedelta(minutes=30)},
                       app.config['JWT_SECRET_KEY'], algorithm='HS256')
 
 
@@ -78,7 +93,7 @@ def generate_token(user_id, app):
 
 def generate_transaction_hash(transaction):
     """Generate a hash for the transaction to ensure integrity."""
-    data = f"{transaction.user_id}{transaction.transaction_type}{transaction.amount}{transaction.balance}{transaction.date}"
+    data = f"{transaction.account_number}{transaction.transaction_type}{transaction.amount}{transaction.balance_after}{transaction.date}"
     return generate_password_hash(data)
 
 
@@ -87,7 +102,7 @@ def generate_transaction_hash(transaction):
 
 def verify_transaction_integrity(transaction):
     """Verify the integrity of a transaction by checking its hash."""
-    data = f"{transaction.user_id}{transaction.transaction_type}{transaction.amount}{transaction.balance}{transaction.date}"
+    data = f"{transaction.account_number}{transaction.transaction_type}{transaction.amount}{transaction.balance_after}{transaction.date}"
     return check_password_hash(transaction.hash, data)
 
 
@@ -128,7 +143,7 @@ def send_email_message(recipient_email, text, subject):
         server = smtplib.SMTP(smtp_server, smtp_port)
         server.starttls()  # Secure the connection with TLS
         server.login(smtp_user, smtp_password)
-        server.sendmail(smtp_user, recipient_email, message.as_string())
+        #server.sendmail(smtp_user, recipient_email, message.as_string())
         res = 1
 
     except Exception as e:

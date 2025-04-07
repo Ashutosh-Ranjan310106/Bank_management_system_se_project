@@ -22,32 +22,47 @@
                 <table class="w-full table-auto user-accounts-table">
                     <thead>
                         <tr class="bg-purple-700 text-purple-200">
-                            <th class="px-4 py-2 text-left">Username</th>
-                            <th class="px-4 py-2 text-left">Account Number</th>
-                            <th class="px-4 py-2 text-left">Name</th>
-                            <th class="px-4 py-2 text-left">Account Type</th>
-                            <th class="px-4 py-2 text-right">Balance</th>
-                            <th class="px-4 py-2 text-right">Loan Amount</th>
-                            <th class="px-4 py-2 text-center">Actions</th>
+                            <th class="w-[12%] px-4 py-2 text-left">Username</th>
+                            <th class="w-[15%] px-4 py-2 text-left">Account Number</th>
+                            <th class="w-[18%] px-4 py-2 text-left">Name</th>
+                            <th class="w-[13%] px-4 py-2 text-left">Account Type</th>
+                            <th class="w-[12%] px-4 py-2 text-right">Balance</th>
+                            <th class="w-[12%] px-4 py-2 text-right">Loan Amount</th>
+                            <th class="w-[18%] px-4 py-2 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for user in users.Verified %}
                         <tr class="{% if loop.index % 2 == 0 %}bg-gray-700{% else %}bg-gray-600{% endif %} hover:bg-gray-500 transition-colors duration-200">
-                            <td class="px-4 py-2 text-purple-200">{{ user.username }}</td>
-                            <td class="px-4 py-2 text-purple-200">{{ user.account_number }}</td>
-                            <td class="px-4 py-2 text-purple-200">{{ user.first_name }} {{ user.last_name }}</td>
-                            <td class="px-4 py-2 text-purple-200">{{ user.account_type }}</td>
-                            <td class="px-4 py-2 text-right text-purple-200">RM {{ "%.2f"|format(user.balance) }}</td>
-                            <td class="px-4 py-2 text-right text-purple-200">RM {{ "%.2f"|format(user.loan_amount) }}</td>
+                            <td class="px-4 py-2 text-purple-200 truncate">{{ user.username }}</td>
+                            <td class="px-4 py-2 text-purple-200 break-words">{{ user.account_number }}</td>
+                            <td class="px-4 py-2 text-purple-200 truncate">{{ user.first_name }} {{ user.last_name }}</td>
+                            <td class="px-4 py-2 text-purple-200 truncate">{{ user.account_type }}</td>
+                            <td class="px-4 py-2 text-right text-purple-200">Rs {{ "%.2f"|format(user.balance) }}</td>
+                            <td class="px-4 py-2 text-right text-purple-200">Rs {{ "%.2f"|format(user.loan_amount) }}</td>
                             <td class="px-4 py-2 text-center">
-                                <a href="{{ url_for('verify_edit_user', account_no = user.account_number) }}" class="text-blue-400 hover:text-blue-300 mr-2 transition-colors duration-200 hover:-translate-y-1 hover:scale-105 inline-block">Edit</a>
-                                <form action="{{ url_for('delete_user', account_no=user.account_number) }}" method="POST">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200">
-                                        Delete
-                                    </button>
-                                </form>
+                                <div class="flex gap-2">
+                                    <a href="{{ url_for('verify_edit_user', account_no = user.account_number) }}" 
+                                       class="w-24 text-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                                        Edit
+                                    </a>
+                                
+                                    <form action="{{ url_for('delete_user', account_no=user.account_number) }}" method="POST" class="w-24" onsubmit="return confirmDelete('{{ user.username }}');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" 
+                                                class="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
+                                            Delete
+                                        </button>
+                                    </form>
+                                    <!-- Transactions Button -->
+                                    <form action="{{ url_for('view_user_transaction', account_no=user.account_number) }}" method="POST" class="w-35">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" 
+                                                class="w-full px-5 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">
+                                            Transactions
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -61,13 +76,13 @@
                 <table class="w-full table-auto user-accounts-table">
                     <thead>
                         <tr class="bg-purple-700 text-purple-200">
-                            <th class="px-4 py-2 text-left">Username</th>
-                            <th class="px-4 py-2 text-left">Account Number</th>
-                            <th class="px-4 py-2 text-left">Name</th>
-                            <th class="px-4 py-2 text-left">Account Type</th>
-                            <th class="px-4 py-2 text-right">Balance</th>
-                            <th class="px-4 py-2 text-right">Loan Amount</th>
-                            <th class="px-4 py-2 text-center">Actions</th>
+                            <th class="w-[12%] px-4 py-2 text-left">Username</th>
+                            <th class="w-[15%] px-4 py-2 text-left">Account Number</th>
+                            <th class="w-[18%] px-4 py-2 text-left">Name</th>
+                            <th class="w-[13%] px-4 py-2 text-left">Account Type</th>
+                            <th class="w-[12%] px-4 py-2 text-right">Balance</th>
+                            <th class="w-[12%] px-4 py-2 text-right">Loan Amount</th>
+                            <th class="w-[18%] px-4 py-2 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -77,16 +92,23 @@
                             <td class="px-4 py-2 text-purple-200">{{ user.account_number }}</td>
                             <td class="px-4 py-2 text-purple-200">{{ user.first_name }} {{ user.last_name }}</td>
                             <td class="px-4 py-2 text-purple-200">{{ user.account_type }}</td>
-                            <td class="px-4 py-2 text-right text-purple-200">RM {{ "%.2f"|format(user.balance) }}</td>
-                            <td class="px-4 py-2 text-right text-purple-200">RM {{ "%.2f"|format(user.loan_amount) }}</td>
+                            <td class="px-4 py-2 text-right text-purple-200">Rs {{ "%.2f"|format(user.balance) }}</td>
+                            <td class="px-4 py-2 text-right text-purple-200">Rs {{ "%.2f"|format(user.loan_amount) }}</td>
                             <td class="px-4 py-2 text-center">
-                                <a href="{{ url_for('verify_edit_user', account_no = user.account_number) }}" class="text-blue-400 hover:text-blue-300 mr-2 transition-colors duration-200 hover:-translate-y-1 hover:scale-105 inline-block">Edit</a>
-                                <form action="{{ url_for('delete_user', account_no=user.account_number) }}" method="POST">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="text-red-400 hover:text-red-300 transition-colors duration-200">
-                                        Delete
-                                    </button>
-                                </form>
+                                <div class="flex gap-2">
+                                    <a href="{{ url_for('verify_edit_user', account_no = user.account_number) }}" 
+                                       class="w-24 text-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                                        Edit
+                                    </a>
+                                
+                                    <form action="{{ url_for('delete_user', account_no=user.account_number) }}" method="POST" class="w-24" onsubmit="return confirmDelete('{{ user.username }}');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" 
+                                                class="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -96,29 +118,45 @@
         </div>
     </div>
     
-    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in" style="animation-delay: 0.6s;">
-        <div class="bg-purple-700 rounded-xl shadow-lg p-6 transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105 animate-fade-in" style="animation-delay: 0.6s;">
-            <h3 class="text-xl font-bold text-purple-200 mb-2">Total verified Users</h3>
+    <<div class="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 animate-fade-in" style="animation-delay: 0.6s;">
+    
+        <div class="bg-purple-700 rounded-xl shadow-lg p-6 transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105">
+            <h3 class="text-xl font-bold text-purple-200 mb-2">Total Verified Users</h3>
             <p class="text-3xl font-bold text-white">{{ users.Verified|length }}</p>
         </div>
-        <div class="bg-purple-700 rounded-xl shadow-lg p-6 transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105 animate-fade-in" style="animation-delay: 0.6s;">
-            <h3 class="text-xl font-bold text-purple-200 mb-2">Total  non verified Users</h3>
+    
+        <div class="bg-purple-700 rounded-xl shadow-lg p-6 transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105">
+            <h3 class="text-xl font-bold text-purple-200 mb-2">Total Non-Verified Users</h3>
             <p class="text-3xl font-bold text-white">{{ users.NonVerified|length }}</p>
         </div>
-        <div class="bg-blue-700 rounded-xl shadow-lg p-6 transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105 animate-fade-in" style="animation-delay: 0.8s;">
+    
+        <div class="bg-blue-700 rounded-xl shadow-lg p-6 transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105" style="animation-delay: 0.8s;">
             <h3 class="text-xl font-bold text-blue-200 mb-2">Total Balance</h3>
-            <p class="text-3xl font-bold text-white">RM {{ "%.2f"|format(users.Verified|sum(attribute='balance')) }}</p>
+            <p class="text-3xl font-bold text-white">Rs {{ "%.2f"|format(users.Verified|sum(attribute='balance')) }}</p>
         </div>
-        <div class="bg-green-700 rounded-xl shadow-lg p-6 transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105 animate-fade-in" style="animation-delay: 1s;">
+    
+        <div class="bg-green-700 rounded-xl shadow-lg p-6 transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105" style="animation-delay: 1s;">
             <h3 class="text-xl font-bold text-green-200 mb-2">Total Loans</h3>
-            <p class="text-3xl font-bold text-white">RM {{ "%.2f"|format(users.Verified|sum(attribute='loan_amount')) }}</p>
+            <p class="text-3xl font-bold text-white">Rs {{ "%.2f"|format(users.Verified|sum(attribute='loan_amount')) }}</p>
         </div>
-        <div class="bg-pink-700 rounded-xl shadow-lg p-6 transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105 animate-fade-in" style="animation-delay: 1.2s;">
+    
+        <div class="bg-pink-700 rounded-xl shadow-lg p-6 transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105" style="animation-delay: 1.2s;">
             <h3 class="text-xl font-bold text-pink-200 mb-2">Admin Users</h3>
             <p class="text-3xl font-bold text-white">{{ users.Verified|selectattr('is_admin', 'equalto', true)|list|length }}</p>
         </div>
-    </div>
     
+    </div>
+    <div class="flex flex-wrap justify-center gap-4 mt-6">
+        <!-- Manage Staff Button -->
+        <a href="{{ url_for('approve_loan') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105">
+            Manage Staff
+        </a>
+    
+        <!-- Approve Loan Button -->
+        <a href="{{ url_for('approve_loan') }}" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105">
+            Approve Loan
+        </a>
+    </div>
     <!-- Add the new Log Visualization section -->
     <div class="mt-12 animate-fade-in" style="animation-delay: 1.4s;">
         <h2 class="text-3xl font-bold text-purple-400 mb-6">Log Visualization</h2>
@@ -227,8 +265,8 @@ tbody tr:hover {
                     case 3: // Balance column
                     case 4: // Loan Amount column
                         return (
-                            parseFloat(cellA.replace('RM ', '')) -
-                            parseFloat(cellB.replace('RM ', ''))
+                            parseFloat(cellA.replace('Rs ', '')) -
+                            parseFloat(cellB.replace('Rs ', ''))
                         ) * multiplier;
                     default:
                         return cellA.localeCompare(cellB) * multiplier;
@@ -387,8 +425,9 @@ const LogVisualization = () => {
                     className="p-2 rounded bg-gray-700 text-white"
                     onChange={handleFilterChange}
                     value={filterLevel}
-                >
+                > 
                     <option value="ALL">All Levels</option>
+                    <option value="DEBUG">Debug</option>
                     <option value="INFO">Info</option>
                     <option value="WARNING">Warning</option>
                     <option value="ERROR">Error</option>
@@ -459,6 +498,10 @@ try {
 } catch (error) {
     console.error("Error rendering LogVisualization:", error);
     document.getElementById('log-visualization').innerHTML = '<p class="text-red-500">Error rendering log visualization. Please check the console for details.</p>';
+}
+
+function confirmDelete(username) {
+    return confirm(`⚠️ Are you sure you want to delete the user "${username}"?\nThis action cannot be undone.`);
 }
 
 </script>

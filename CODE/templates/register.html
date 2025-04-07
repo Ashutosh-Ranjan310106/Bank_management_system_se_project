@@ -6,11 +6,11 @@
 <div class="container mx-auto px-4 py-8 max-w-lg">
     <h1 class="text-5xl font-bold text-purple-400 mb-8 text-center animate-fade-in-down">Register</h1>
     
-    <form method="POST" action="{{ url_for('register') }}" class="bg-gray-800 shadow-2xl rounded-2xl p-8 transition-all duration-300 hover:shadow-purple-500/50">
+    <form method="POST" action="{{ url_for('register') }}" enctype="multipart/form-data" class="bg-gray-800 shadow-2xl rounded-2xl p-8 transition-all duration-300 hover:shadow-purple-500/50">
         {{ form.hidden_tag() }}
         
         {% for field in [form.username, form.password, form.first_name, form.last_name, form.phone, form.city, form.email] %}
-        <div class="mb-6 animate-fade-in" style="animation-delay: {{ loop.index0 * 0.1 }}s;">
+        <div class="mb-6 animate-fade-in" style="animation-delay: {{ loop.index0 * 0.1 }};">
             {{ field.label(class="block mb-2 text-lg font-medium text-purple-300") }}
             {{ field(class="w-full px-4 py-3 rounded-xl border-2 border-purple-500 text-gray-200 bg-gray-700 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400 transition-all duration-300 hover:border-purple-400 placeholder-gray-500") }}
             {% for error in field.errors %}
@@ -34,7 +34,35 @@
                 <p class="mt-2 text-sm text-red-400">{{ error }}</p>
             {% endfor %}
         </div>
-        
+         <!-- Aadhaar Upload -->
+        <div class="mb-6 animate-fade-in" style="animation-delay: 0.9s;">
+            {{ form.aadhaar.label(class="block mb-2 text-lg font-medium text-purple-300") }}
+            {{ form.aadhaar(
+                id="aadhaar-upload",
+                class="w-full px-4 py-2 rounded-xl border-2 border-purple-500 text-gray-200 bg-gray-700 
+                    file:bg-purple-600 file:text-white file:rounded-md file:cursor-pointer 
+                    file:px-4 file:py-2 transition-all duration-300"
+            ) }}
+            <img id="aadhaar-preview" class="mt-4 rounded-lg w-48 h-auto hidden border-2 border-purple-400 shadow-md" alt="Aadhaar Preview">
+            {% for error in form.aadhaar.errors %}
+                <p class="mt-2 text-sm text-red-400">{{ error }}</p>
+            {% endfor %}
+        </div>
+
+        <!-- PAN Upload -->
+        <div class="mb-8 animate-fade-in" style="animation-delay: 1.0s;">
+            {{ form.pan_card.label(class="block mb-2 text-lg font-medium text-purple-300") }}
+            {{ form.pan_card(
+                id="pan-upload",
+                class="w-full px-4 py-2 rounded-xl border-2 border-purple-500 text-gray-200 bg-gray-700 
+                    file:bg-purple-600 file:text-white file:rounded-md file:cursor-pointer 
+                    file:px-4 file:py-2 transition-all duration-300"
+            ) }}
+            <img id="pan-preview" class="mt-4 rounded-lg w-48 h-auto hidden border-2 border-purple-400 shadow-md" alt="PAN Preview">
+            {% for error in form.pan_card.errors %}
+                <p class="mt-2 text-sm text-red-400">{{ error }}</p>
+            {% endfor %}
+        </div>
         <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-4 rounded-xl transition-all duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105 hover:shadow-lg animate-fade-in" style="animation-delay: 0.9s;">
             Register
         </button>
@@ -78,4 +106,27 @@ input:focus, select:focus {
     transform: scale(1.02);
 }
 </style>
+<script>
+    function previewImage(inputId, previewId) {
+        const input = document.getElementById(inputId);
+        const preview = document.getElementById(previewId);
+    
+        input.addEventListener('change', function () {
+            const file = this.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    preview.src = e.target.result;
+                    preview.classList.remove('hidden');
+                }
+                reader.readAsDataURL(file);
+            } else {
+                preview.classList.add('hidden');
+            }
+        });
+    }
+    
+    previewImage('aadhaar-upload', 'aadhaar-preview');
+    previewImage('pan-upload', 'pan-preview');
+</script>
 {% endblock %}
