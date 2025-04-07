@@ -94,13 +94,12 @@
                 <p class="text-2xl text-blue-200">Aadhar Card</p>
             </div>
             <div class="flex items-center gap-4">
-                {{ aadhar_image_url }}
-                <img src="{{ aadhar_image_url }}" alt="Aadhar Card"
+                <img src="{{ url_for('static', filename=aadhar_image_url) }}" alt="Aadhar Card"
                     class="w-32 h-auto rounded shadow-lg border-2 border-blue-300">
-                    <button type="button" onclick="openModal('{{ aadhar_image_url }}')"
-                    class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-800">
-                    Enlarge
-                </button>
+                    <button type="button" onclick="openaadhar()"
+                        class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-800">
+                        Enlarge
+                    </button>
             </div>
         </div>
 
@@ -115,9 +114,9 @@
                 <p class="text-2xl text-green-200">PAN Card</p>
             </div>
             <div class="flex items-center gap-4">
-                <img src="{{ pan_image_url }}" alt="PAN Card"
+                <img src="{{ url_for('static', filename=pan_image_url) }}" alt="PAN Card"
                     class="w-32 h-auto rounded shadow-lg border-2 border-green-300">
-                    <button onclick="openModal('{{ pan_image_url }}')"
+                    <button onclick="openpan()"
                     class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-800">Enlarge</button>
             </div>
         </div>
@@ -169,10 +168,18 @@
 
 <!-- Script -->
 <script>
-    function openModal(imageUrl) {
+    function openaadhar() {
         const modal = document.getElementById('imageModal');
         const modalImage = document.getElementById('modalImage');
-        modalImage.src = imageUrl;
+        modalImage.src = "{{ url_for('static', filename=aadhar_image_url) }}";
+        console.log(modalImage.src)
+        modal.classList.remove('hidden');
+    }
+
+    function openpan() {
+        const modal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        modalImage.src = "{{ url_for('static', filename=pan_image_url) }}";
         console.log(modalImage.src)
         modal.classList.remove('hidden');
     }

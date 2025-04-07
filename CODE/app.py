@@ -160,6 +160,7 @@ def home():
 def login():
     try:
         form = LoginForm()
+        otpForm = OTPForm()
         if form.validate_on_submit():
             account_no = form.account_no.data
             password = form.password.data
@@ -174,15 +175,8 @@ def login():
             if user and check_password_hash(user.password, password):
                 user.failed_login_attempts = 0
                 db.session.commit()
-                token = generate_token(user.account_number, app)
-                session['token'] = token
-                flash('Logged in successfully.', 'success')
-                app.logger.info(f'User {account_no} logged in successfully')
-                messsage, subject = format_message([user.first_name +user.last_name ,str(datetime.now()), "+91-1800-123-4567"], "login_success")
-                send_email_message(user.email, messsage, subject)
-                if user.is_admin:
-                    return redirect(url_for('admin_dashboard'))
-                return redirect(url_for('dashboard'))
+                session['account_no'] = user.account_number
+                return redirect(url_for('send_otp'))
             else:
                 if user:
                     user.failed_login_attempts += 1
@@ -193,12 +187,52 @@ def login():
                     send_email_message(user.email, messsage, subject)
                 flash('Invalid username or password.', 'error')
                 app.logger.warning(f'Failed login attempt for username: {account_no}')
+        elif otpForm.validate_on_submit():
+            recived_otp =  otpForm.otp.data
+            encoded_otp = session.get('OTP')
+            account_no = session.get('account_no')
+            user = User.query.get(account_no)
+            try:
+                decoded_otp = jwt.decode(encoded_otp, app.config['JWT_SECRET_KEY'], algorithms=['HS256'])['otp']
+            except jwt.ExpiredSignatureError:
+                flash("OTP has expired. Please login again.", "error")
+                session.pop('OTP', None)
+                return redirect(url_for('login'))
+            if decoded_otp == recived_otp:
+                token = generate_token(user.account_number, app)
+                session['token'] = token
+
+                session.pop('OTP', None)
+                session.pop('account_no', None)
+
+                flash('Logged in successfully.', 'success')
+                app.logger.info(f'User {account_no} logged in successfully')
+                messsage, subject = format_message([user.first_name +user.last_name ,str(datetime.now()), "+91-1800-123-4567"], "login_success")
+                send_email_message(user.email, messsage, subject)
+                if user.is_admin:
+                    return redirect(url_for('admin_dashboard'))
+                return redirect(url_for('dashboard'))
+            else:
+                flash('incorrect otp')
+                return render_template('otp.html', otpform=otpForm)
+
+                
         return render_template('login.html', form=form)
     except RateLimitExceeded:
         app.logger.warning(f'Rate limit exceeded for login from IP: {request.remote_addr}')
         return render_template('rate_limit_exceeded.html'), 429
-
-
+@app.route('/send_otp',methods=['GET'])
+def send_otp():
+    otpForm = OTPForm()
+    if session.get('account_no'):
+        otp = generate_otp(6)
+        session['OTP'] = jwt.encode({'otp':otp}, app.config['JWT_SECRET_KEY'], algorithm='HS256')
+        print('\n\n\n', session['OTP'], '>>>',otp, '\n\n\n')
+    else:
+        flash('invalid session')
+        return redirect(url_for('login'))
+    return render_template('otp.html', otpform=otpForm)
+    
 #================================================================================================================================================================
 
 @app.route('/logout')
@@ -494,8 +528,8 @@ def verify_edit_user(account_no):
             user = db.session.query(User).filter(User.account_number == account_no).first()
             if user:
                 print(2345)
-                aadhaar_url = app.config['UPLOAD_FOLDER']+'/' + user.aadhaar_url
-                pan_url = app.config['UPLOAD_FOLDER']+'/'+ user.pan_url
+                aadhaar_url = app.config['UPLOAD_FOLDER'][7::]+'/' + user.aadhaar_url
+                pan_url = app.config['UPLOAD_FOLDER'][7::]+'/'+ user.pan_url
                 print('aadhaar url','\n\n\n\n',aadhaar_url)
                 return render_template('user_page.html', user=user, aadhar_image_url = aadhaar_url , pan_image_url = pan_url)
             else:

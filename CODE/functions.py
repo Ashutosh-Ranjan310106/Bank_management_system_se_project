@@ -107,8 +107,8 @@ def verify_transaction_integrity(transaction):
 
 
 
-def generate_otp():
-    otp = ''.join(random.choices('0123456789', k=6))  # 6-digit OTP
+def generate_otp(length):
+    otp = ''.join(random.choices('0123456789', k=length))
     return otp
 
 import json

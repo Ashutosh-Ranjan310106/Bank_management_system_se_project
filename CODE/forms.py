@@ -65,3 +65,6 @@ class LoanForm(FlaskForm):
 class LoginForm(FlaskForm):
     account_no = StringField('Account Number', validators=[DataRequired(), Length(min=12, max=12)])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=8, max=15)])
+
+class OTPForm(FlaskForm):
+    otp = StringField('OTP', validators=[DataRequired(), Length(min=6, max=6)])
