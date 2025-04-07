@@ -131,7 +131,8 @@ def format_message(message_attributes, message_type):
     
     return message, subject
 @run_in_thread
-def send_email_message(recipient_email, text, subject):    
+def send_email_message(recipient_email, text, subject): 
+    """   
     print(text,subject, str(text), str(subject))
     body = text
     message = MIMEMultipart()
@@ -154,5 +155,7 @@ def send_email_message(recipient_email, text, subject):
         server.quit()
 
     return res
+    """
+    return
 
 

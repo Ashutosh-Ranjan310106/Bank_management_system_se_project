@@ -83,6 +83,45 @@
             </div>
             
         </div>
+        <!-- Aadhar Card -->
+        <div class="flex items-center justify-between bg-blue-700 p-4 rounded-lg">
+            <div class="flex items-center">
+                <svg class="w-8 h-8 mr-3 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 12h14M12 5l7 7-7 7"></path>
+                </svg>
+                <p class="text-2xl text-blue-200">Aadhar Card</p>
+            </div>
+            <div class="flex items-center gap-4">
+                {{ aadhar_image_url }}
+                <img src="{{ aadhar_image_url }}" alt="Aadhar Card"
+                    class="w-32 h-auto rounded shadow-lg border-2 border-blue-300">
+                    <button type="button" onclick="openModal('{{ aadhar_image_url }}')"
+                    class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-800">
+                    Enlarge
+                </button>
+            </div>
+        </div>
+
+        <!-- PAN Card -->
+        <div class="flex items-center justify-between bg-green-700 p-4 rounded-lg mt-4">
+            <div class="flex items-center">
+                <svg class="w-8 h-8 mr-3 text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 12h14M12 5l7 7-7 7"></path>
+                </svg>
+                <p class="text-2xl text-green-200">PAN Card</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <img src="{{ pan_image_url }}" alt="PAN Card"
+                    class="w-32 h-auto rounded shadow-lg border-2 border-green-300">
+                    <button onclick="openModal('{{ pan_image_url }}')"
+                    class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-800">Enlarge</button>
+            </div>
+        </div>
+
         <div class="mt-8 space-y-4">
             {% if user.is_verified %}
                 <div class="text-center bg-green-600 p-4 rounded-lg text-white font-bold">
@@ -107,7 +146,13 @@
         </a>
     </div>
 </div>
-
+<div id="imageModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 hidden">
+    <div class="relative bg-white rounded-lg overflow-hidden max-w-3xl w-full p-4">
+        <button onclick="closeModal()"
+            class="absolute top-2 right-2 text-black hover:text-red-600 text-2xl font-bold">&times;</button>
+        <img id="modalImage" src="" alt="Enlarged" class="w-full h-auto rounded">
+    </div>
+</div>
 <style>
 @keyframes fadeInDown {
     from { opacity: 0; transform: translate3d(0, -30px, 0); }
@@ -120,4 +165,21 @@
 .animate-fade-in-down { animation: fadeInDown 0.8s ease-out; }
 .animate-fade-in { animation: fadeIn 0.8s ease-out forwards; opacity: 0; }
 </style>
+
+
+<!-- Script -->
+<script>
+    function openModal(imageUrl) {
+        const modal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        modalImage.src = imageUrl;
+        console.log(modalImage.src)
+        modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('imageModal');
+        modal.classList.add('hidden');
+    }
+</script>
 {% endblock %}

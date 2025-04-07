@@ -488,10 +488,16 @@ def view_user_transaction(account_no):
 @app.route('/admin/user/verify/<string:account_no>', methods =['GET', 'POST'])
 @admin_required
 def verify_edit_user(account_no):
+        print(123)
         if request.method == 'GET':
+            print(123442)
             user = db.session.query(User).filter(User.account_number == account_no).first()
             if user:
-                return render_template('user_page.html', user=user)
+                print(2345)
+                aadhaar_url = app.config['UPLOAD_FOLDER']+'/' + user.aadhaar_url
+                pan_url = app.config['UPLOAD_FOLDER']+'/'+ user.pan_url
+                print('aadhaar url','\n\n\n\n',aadhaar_url)
+                return render_template('user_page.html', user=user, aadhar_image_url = aadhaar_url , pan_image_url = pan_url)
             else:
                 flash("User not found", "success")
                 return redirect(url_for('admin_dashboard'))
@@ -499,9 +505,11 @@ def verify_edit_user(account_no):
             user = db.session.query(User).filter(User.account_number == account_no).first()
             if user:
                 user.is_verified = True
+                aadhaar_url = app.config['UPLOAD_FOLDER']+'/' + user.aadhaar_url
+                pan_url = app.config['UPLOAD_FOLDER']+'/'+ user.pan_url
                 flash("user is verified", "success")
                 db.session.commit()
-                return render_template('user_page.html', user=user)
+                return render_template('user_page.html', user=user, aadhar_image_url = aadhaar_url.strip() , pan_image_url = pan_url.strip())
             else:
                 flash("User not found", "success")
                 return redirect(url_for('admin_dashboard'))
@@ -545,7 +553,7 @@ def profile(current_user):
     aadhaar_url = app.config['UPLOAD_FOLDER']+'/'+current_user.aadhaar_url
     pan_url = app.config['UPLOAD_FOLDER']+'/'+current_user.pan_url
 
-    print(repr(pan_url)) 
+
     return render_template('profile.html', user=current_user, aadhar_image_url = aadhaar_url.strip() , pan_image_url = pan_url.strip() )
 
 
