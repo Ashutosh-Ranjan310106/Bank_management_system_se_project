@@ -1,0 +1,41 @@
+{% extends "base_email.html" %}
+
+{% block content %}
+  <p style="font-size: 16px; margin-bottom: 20px;">Hi {{ sender_name }},</p>
+
+  <p style="font-size: 15px;">
+    Your transfer of <strong style="color: green;">₹{{ '%.2f' | format(amount) }}</strong> to
+    <strong>{{ receiver_name }}</strong> (A/C: <strong>{{ receiver_account }}</strong>) has been successfully processed.
+  </p>
+
+  <table style="width: 100%; font-size: 14px; margin-top: 20px;">
+    <tr>
+      <td style="padding: 8px 0;"><strong>Sender Account:</strong></td>
+      <td>{{ sender_account }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Recipient:</strong></td>
+      <td>{{ receiver_name }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Recipient Account:</strong></td>
+      <td>{{ receiver_account }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Amount:</strong></td>
+      <td>₹{{ '%.2f' | format(amount) }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Date:</strong></td>
+      <td>{{ transaction_date }}</td>
+    </tr>
+  </table>
+
+  <p style="font-size: 14px; margin-top: 30px;">
+    You can view this transaction in your <a href="{{ dashboard_link }}" style="color: #0047ab;">transaction history</a>.
+  </p>
+
+  <p style="font-size: 14px;">
+    Thank you for banking with us,<br><strong>RupeeVault Bank</strong>
+  </p>
+{% endblock %}

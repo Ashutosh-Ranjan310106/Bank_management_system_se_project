@@ -5,19 +5,29 @@ from model import db, User
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
 import random
 import os
 import smtplib
 import hashlib
 from dotenv import load_dotenv
+from flask import render_template
 
 # Load variables from .env
 load_dotenv()
-smtp_user = os.getenv('smtp_user')
-smtp_server = os.getenv('smtp_server')
-smtp_port = os.getenv('smtp_port')
-smtp_password = os.getenv('smtp_password')
+production = os.getenv("production", "False") == "True"
+
+if production:
+    smtp_server = os.getenv("SMTP_SERVER")
+    smtp_port = int(os.getenv("SMTP_PORT", 587))
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_password = os.getenv("SMTP_PASSWORD")
+else:
+    smtp_server = "localhost"
+    smtp_port = 2525
+    smtp_user = os.getenv("SMTP_USER")  # Optional fallback
+    smtp_password = os.getenv("SMTP_PASSWORD")
 def run_in_thread(func):
     """
     A decorator to run the decorated function in a separate thread.
@@ -114,22 +124,7 @@ def generate_otp(length):
 import json
 
 
-def format_message(message_attributes, message_type):
 
-    """Load the JSON file containing notification templates."""
-    with open("notification.json", 'r') as file:
-        all_message_template = json.load(file)
-    """Format a message by replacing @ placeholders with values."""
-    message_template = all_message_template["notifications"].get(message_type, '')
-    if not message_template:
-        print("Invalid message type")
-        return 
-    message = message_template["message"]
-    subject = message_template["subject"]
-    for value in message_attributes:
-        message= message.replace('@', str(value), 1)
-    
-    return message, subject
 @run_in_thread
 def send_email_message(recipient_email, text, subject): 
     """   
@@ -157,5 +152,43 @@ def send_email_message(recipient_email, text, subject):
     return res
     """
     return
+def mask_account_number(acc_no):
+    return '********' + acc_no[-4:]
 
+
+@run_in_thread
+def send_email(recipient_email, text, subject, attachments=None): 
+ 
+    print(text,subject, str(text), str(subject))
+    body = text
+    message = MIMEMultipart()
+    message["From"] = smtp_user
+    message["To"] = recipient_email
+    message["Subject"] = subject
+    message.attach(MIMEText(body, "HTML"))
+    if attachments:
+        for filename, filedata in attachments:
+            part = MIMEApplication(filedata, Name=filename)
+            part['Content-Disposition'] = f'attachment; filename="{filename}"'
+            message.attach(part)
+    try:
+        if not production:
+            server = smtplib.SMTP(smtp_server, smtp_port)
+            server.sendmail(smtp_user, recipient_email, message.as_string())
+            res = 1
+        else:
+            server = smtplib.SMTP(smtp_server, smtp_port)
+            server.starttls()  # Secure the connection with TLS
+            server.login(smtp_user, smtp_password)
+            server.sendmail(smtp_user, recipient_email, message.as_string())
+            res = 1
+
+    except Exception as e:
+        print(e)
+        res = -1
+        
+    finally:
+        server.quit()
+
+    return res
 

@@ -1,0 +1,36 @@
+{% extends "base_email.html" %}
+
+{% block content %}
+  <p style="font-size: 16px; margin-bottom: 20px;">Hi {{ full_name }},</p>
+
+  <p style="font-size: 15px;">
+    This is to inform you that a withdrawal has been successfully made from your <strong>RupeeVault Bank</strong> account.
+  </p>
+
+  <table style="width: 100%; font-size: 14px; margin-top: 20px;">
+    <tr>
+      <td style="padding: 8px 0;"><strong>Account Number:</strong></td>
+      <td>{{ account_number }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Withdrawal Amount:</strong></td>
+      <td style="color: red;"><strong>₹{{ '%.2f'|format(amount) }}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Transaction Date:</strong></td>
+      <td>{{ transaction_date }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>New Balance:</strong></td>
+      <td>₹{{ '%.2f'|format(new_balance) }}</td>
+    </tr>
+  </table>
+
+  <p style="font-size: 14px; color: #c00; margin-top: 20px;">
+    If you did not authorize this transaction, please <a href="{{ support_link }}" style="color: #c00;">contact support immediately</a>.
+  </p>
+
+  <p style="font-size: 14px; margin-top: 40px;">
+    Thank you,<br><strong>RupeeVault Bank Team</strong>
+  </p>
+{% endblock %}

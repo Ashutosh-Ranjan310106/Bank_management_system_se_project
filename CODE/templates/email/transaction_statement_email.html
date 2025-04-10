@@ -1,0 +1,33 @@
+{% extends "base_email.html" %}
+
+{% block content %}
+  <p style="font-size: 16px; margin-bottom: 20px;">Hi {{ full_name }},</p>
+
+  <p style="font-size: 15px;">
+    Please find your <strong>transaction statement</strong> attached as a PDF for the requested period.
+  </p>
+
+  <table style="width: 100%; font-size: 14px; margin-top: 20px;">
+    <tr>
+      <td style="padding: 8px 0;"><strong>Account Number:</strong></td>
+      <td>{{ account_number }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Statement Period:</strong></td>
+      <td>{{ statement_period }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Generated On:</strong></td>
+      <td>{{ generated_on }}</td>
+    </tr>
+  </table>
+
+  <p style="font-size: 14px; color: #555; margin-top: 30px;">
+    If you have any questions or notice any discrepancies, please <a href="{{ support_link }}" style="color: #0047ab;">contact our support team</a>.
+  </p>
+
+  <p style="font-size: 14px;">
+    Thank you for banking with us,<br>
+    <strong>RupeeVault Bank Team</strong>
+  </p>
+{% endblock %}

@@ -157,7 +157,7 @@ https://github.com/user-attachments/assets/6a12117d-d5c6-4e40-8cea-22822fb40ea0
    ```
 
 7. Access the application at `http://localhost:5000`
-
+docker run -it -p 3000:80 -p 1025:25 rnwood/smtp4dev
 ---
 
 ## 🖥️ Usage

@@ -68,3 +68,9 @@ class LoginForm(FlaskForm):
 
 class OTPForm(FlaskForm):
     otp = StringField('OTP', validators=[DataRequired(), Length(min=6, max=6)])
+
+#================================================================================================================================================================
+class TransferForm(FlaskForm):
+    amount = FloatField('Amount', validators=[DataRequired(), NumberRange(min=0.01, max=1000000)])
+    related_account_number = StringField('Transfer account number', validators=[DataRequired()])
+    description = StringField('Description')

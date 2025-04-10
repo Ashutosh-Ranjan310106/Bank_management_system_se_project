@@ -1,0 +1,32 @@
+{% extends "base_email.html" %}
+
+{% block content %}
+  <p style="font-size: 16px; margin-bottom: 20px;">Hi {{ full_name }},</p>
+
+  <p style="font-size: 15px;">
+    We’re happy to inform you that your <strong>RupeeVault Bank</strong> account has been <span style="color: green;"><strong>successfully verified</strong></span> and activated.
+  </p>
+
+  <div style="margin: 20px 0; padding: 15px; background-color: #f5f8ff; border-left: 4px solid #0047ab;">
+    <p style="margin: 0; font-size: 15px;">
+      <strong>Your Account Number:</strong><br>
+      <span style="font-size: 20px; font-weight: bold; color: #0047ab;">{{ account_number }}</span>
+    </p>
+  </div>
+
+  <p style="font-size: 14px; color: #555;">
+    You can now log in and start using our full suite of banking services including deposits, withdrawals, money transfers, and loan applications.
+  </p>
+
+  <p style="font-size: 14px; color: #555;">
+    👉 <a href="{{ login_link }}" style="color: #0047ab;">Log in to your account</a> to get started.
+  </p>
+
+  <p style="font-size: 14px; color: #555;">
+    If you need any assistance, feel free to <a href="{{ support_link }}" style="color: #0047ab;">contact our support team</a>.
+  </p>
+
+  <p style="font-size: 14px; margin-top: 40px;">
+    Welcome aboard,<br><strong>RupeeVault Bank Team</strong>
+  </p>
+{% endblock %}

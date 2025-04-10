@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Transaction History - RupeeVault</title>
+    <style>
+        table.transactions td {
+            word-wrap: break-word;
+            white-space: normal;
+        }
+        @page {
+            size: A4;
+            margin: 1in;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            color: #000;
+            line-height: 1.4;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .user-info {
+            width: 100%;
+            border: 1px solid #ccc;
+            padding: 8px;
+            margin-bottom: 20px;
+        }
+
+        .user-info td {
+            padding: 4px 6px;
+        }
+
+        table.transactions {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table.transactions th, table.transactions td {
+            border: 1px solid #333;
+            padding: 6px 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        table.transactions th {
+            background-color: #f0f0f0;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 30px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 10px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>RupeeVault Bank</h1>
+    <h2>Transaction History</h2>
+
+    <table class="user-info">
+        <tr>
+            <td><strong>Account Holder:</strong> {{ user.first_name }} {{ user.last_name }}</td>
+            <td><strong>Account Number:</strong> {{ user.account_number }}</td>
+        </tr>
+        <tr>
+            <td><strong>Email:</strong> {{ user.email }}</td>
+            <td><strong>Phone:</strong> {{ user.phone }}</td>
+        </tr>
+        <tr>
+            <td colspan="2"><strong>Report Generated:</strong> {{ current_date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        </tr>
+    </table>
+
+    <table class="transactions">
+        <thead>
+            <tr>
+                <th style="width: 18%;">Date & Time</th>
+                <th style="width: 12%;">Type</th>
+                <th style="width: 14%;">Amount (INR)</th>
+                <th style="width: 16%;">Balance (INR)</th>
+                <th style="width: 40%;">Description</th> <!-- Wider column -->
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in transactions %}
+            <tr>
+                <td>{{ t.date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>{{ t.transaction_type }}</td>
+                <td>Rs {{ "%.2f"|format(t.amount) }}</td>
+                <td>Rs {{ "%.2f"|format(t.balance_after) }}</td>
+                <td>{{ t.description }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        &copy; {{ current_date.year }} RupeeVault Bank System
+    </div>
+
+</body>
+</html>

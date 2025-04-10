@@ -1,0 +1,32 @@
+{% extends "base_email.html" %}
+
+{% block content %}
+  <p style="font-size: 16px; margin-bottom: 20px;">Hi {{ full_name }},</p>
+
+  <p style="font-size: 15px;">
+    Thank you for registering with <strong>RupeeVault Bank</strong>. We’ve successfully received your account creation request.
+  </p>
+
+  <p style="font-size: 14px; color: #555; margin-top: 10px;">
+    Your account is currently under review. Once verified, you’ll be notified and can begin using our banking services.
+  </p>
+
+  <div style="margin: 25px 0; padding: 15px; background-color: #f5f8ff; border-left: 4px solid #0047ab;">
+    <p style="margin: 0; font-size: 15px;">
+      <strong>Your Account Number:</strong><br>
+      <span style="font-size: 20px; font-weight: bold; color: #0047ab;">{{ account_number }}</span>
+    </p>
+  </div>
+
+  <p style="font-size: 14px; color: #555;">
+    🔒 <strong>Please save this account number.</strong> It will be required for logging in, transactions, and customer support.
+  </p>
+
+  <p style="font-size: 14px; color: #555; margin-top: 30px;">
+    If you have any questions or face issues during verification, feel free to <a href="{{ support_link }}" style="color: #0047ab;">contact our support team</a>.
+  </p>
+
+  <p style="font-size: 14px; margin-top: 40px;">
+    Sincerely,<br><strong>RupeeVault Onboarding Team</strong>
+  </p>
+{% endblock %}

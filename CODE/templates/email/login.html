@@ -1,0 +1,37 @@
+{% extends "base_email.html" %}
+
+{% block content %}
+  <p style="font-size: 16px; margin-bottom: 20px;">Hi {{ full_name }},</p>
+
+  <p style="font-size: 15px; margin-bottom: 10px;">
+    A successful login was detected on your <strong>RupeeVault Bank</strong> account.
+  </p>
+
+  <table style="width: 100%; font-size: 14px; margin-top: 20px; border-collapse: collapse;">
+    <tr>
+      <td style="padding: 8px 0;"><strong>Account Number:</strong></td>
+      <td>{{ account_number }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Date & Time:</strong></td>
+      <td>{{ login_time }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>IP Address:</strong></td>
+      <td>{{ ip_address }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Device/Browser:</strong></td>
+      <td>{{ user_agent }}</td>
+    </tr>
+  </table>
+
+  <p style="font-size: 14px; color: #555; margin-top: 30px;">
+    If this was you, no further action is needed.<br>
+    If you didn’t log in, please reset your password immediately or contact our support team.
+  </p>
+
+  <p style="font-size: 14px; margin-top: 40px;">
+    Thank you,<br><strong>RupeeVault Bank Security Team</strong>
+  </p>
+{% endblock %}

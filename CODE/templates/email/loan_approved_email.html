@@ -1,0 +1,53 @@
+{% extends "base_email.html" %}
+
+{% block content %}
+  <p style="font-size: 16px; margin-bottom: 20px;">Hi {{ full_name }},</p>
+
+  <p style="font-size: 15px;">
+    Great news! Your loan request with <strong>RupeeVault Bank</strong> has been <span style="color: green;"><strong>approved</strong></span>.
+  </p>
+
+  <table style="width: 100%; font-size: 14px; margin-top: 20px;">
+    <tr>
+      <td style="padding: 8px 0;"><strong>Account Number:</strong></td>
+      <td>{{ account_number }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Loan Amount:</strong></td>
+      <td>₹{{ '%.2f' | format(amount) }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Loan Type:</strong></td>
+      <td>{{ loan_type }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Duration:</strong></td>
+      <td>{{ duration }} {{ "year" if duration == 1 else "years" }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Monthly Payment:</strong></td>
+      <td>₹{{ '%.2f' | format(monthly_payment) }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Approval Date:</strong></td>
+      <td>{{ approval_date }}</td>
+    </tr>
+  </table>
+
+  <p style="font-size: 14px; color: #555; margin-top: 30px;">
+    The loan amount has been credited to your account. Your EMI cycle will begin from the next billing date.
+  </p>
+
+  <p style="font-size: 14px;">
+    You can view and manage your loan details from your <a href="{{ login_link }}" style="color: #0047ab;">dashboard</a>.
+  </p>
+
+  <p style="font-size: 14px; color: #555;">
+    If you have any questions, feel free to <a href="{{ support_link }}" style="color: #0047ab;">contact our support team</a>.
+  </p>
+
+  <p style="font-size: 14px; margin-top: 40px;">
+    Congratulations once again,<br>
+    <strong>RupeeVault Loans Department</strong>
+  </p>
+{% endblock %}

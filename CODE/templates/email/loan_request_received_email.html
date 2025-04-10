@@ -1,0 +1,48 @@
+{% extends "base_email.html" %}
+
+{% block content %}
+  <p style="font-size: 16px; margin-bottom: 20px;">Hi {{ full_name }},</p>
+
+  <p style="font-size: 15px;">
+    We’ve successfully received your loan request of <strong style="color: #0047ab;">₹{{ '%.2f' | format(amount) }}</strong> for your RupeeVault Bank account.
+  </p>
+
+  <table style="width: 100%; font-size: 14px; margin-top: 20px;">
+    <tr>
+      <td style="padding: 8px 0;"><strong>Account Number:</strong></td>
+      <td>{{ account_number }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Loan Amount:</strong></td>
+      <td>₹{{ '%.2f' | format(amount) }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Loan Duration:</strong></td>
+      <td>{{ duration }} {{ "years" if duration == 1 else "years" }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Monthly Payment:</strong></td>
+      <td>₹{{ '%.2f' | format(monthly_payment) }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Application Date:</strong></td>
+      <td>{{ date_applied }}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 0;"><strong>Status:</strong></td>
+      <td><strong>Pending Verification</strong></td>
+    </tr>
+  </table>
+
+  <p style="font-size: 14px; color: #555; margin-top: 30px;">
+    Our loan verification team will review your application shortly. Once approved, you will receive a confirmation email with further details.
+  </p>
+
+  <p style="font-size: 14px; color: #555;">
+    If you have any questions about your loan request, feel free to <a href="{{ support_link }}" style="color: #0047ab;">contact our support team</a>.
+  </p>
+
+  <p style="font-size: 14px; margin-top: 40px;">
+    Thank you,<br><strong>RupeeVault Loans Department</strong>
+  </p>
+{% endblock %}

@@ -25,6 +25,7 @@ MarkupSafe==3.0.2
 mdurl==0.1.2
 ordered-set==4.1.0
 packaging==24.2
+pdfkit==1.0.0
 pycparser==2.22
 Pygments==2.19.1
 PyJWT==2.10.1

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Transfer Confirmation{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-16 max-w-lg text-center">
+    <div class="bg-gray-800 shadow-2xl rounded-3xl p-10 animate-fade-in-down">
+        <h1 class="text-4xl font-bold text-green-400 mb-6">Transfer Successful</h1>
+        
+        <p class="text-lg text-gray-300 mb-2">You have successfully transferred:</p>
+        <p class="text-3xl font-bold text-white mb-4">Rs {{ '%.2f' | format(amount) }}</p>
+
+        <div class="text-left mb-6 bg-gray-900 rounded-xl p-4 space-y-2 text-sm text-gray-200">
+            <p><span class="font-semibold text-purple-400">Recipient Name:</span> {{ receiver_name }}</p>
+            <p><span class="font-semibold text-purple-400">Account Number:</span> {{ account_number }}</p>
+            {% if description %}
+            <p><span class="font-semibold text-purple-400">Description:</span> {{ description }}</p>
+            {% endif %}
+        </div>
+
+        <a href="{{ url_for('dashboard') }}"
+           class="inline-block bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition duration-300 ease-in-out transform hover:scale-105">
+            Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<style>
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-down {
+    animation: fadeInDown 0.6s ease-out;
+}
+</style>
+{% endblock %}

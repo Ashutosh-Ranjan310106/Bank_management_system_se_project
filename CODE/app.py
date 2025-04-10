@@ -1,7 +1,9 @@
 #================================================================================================================================================================
 
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
+from xhtml2pdf import pisa
+from io import BytesIO
 from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError
 from flask_wtf import CSRFProtect
@@ -33,6 +35,7 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=30)  # Token expires 
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB max file size
 app.config['UPLOAD_EXTENSIONS'] = ['.jpg', '.jpeg', '.png']
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['production'] = os.environ.get('production')
 db.init_app(app)
 #migrate = Migrate(app, db)
 csrf = CSRFProtect(app)
@@ -47,7 +50,7 @@ limiter.init_app(app)
 # Set up logging
 if not os.path.exists('logs'):
     os.mkdir('logs')
-file_handler = RotatingFileHandler('logs/flask_bank.log', maxBytes=10240, backupCount=10)
+file_handler = RotatingFileHandler('logs/flask_bank.log', maxBytes=10240, backupCount=10, delay=True)
 file_handler.setFormatter(logging.Formatter(
     '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
 ))
@@ -124,7 +127,7 @@ def admin_required(f):
 def log_request_info():
     if request.path.startswith("/static/"):
         return
-    user_agent = user_agent = request.headers.get("User-Agent", "Unknown")
+    user_agent = request.headers.get("User-Agent", "Unknown")
     app.logger.debug(
     "Request Info: IP=%s, UserAgent=%s, Method=%s, Path=%s",
     request.remote_addr,
@@ -166,7 +169,7 @@ def login():
             password = form.password.data
             user = User.query.get(account_no)
             print(user, account_no,'\n\n\n\n')
-            if user and user.account_locked_until and user.account_locked_until > datetime.utcnow():
+            if user and user.account_locked_until and user.account_locked_until > datetime.now():
                 flash('Account is locked. Please try again later.', 'error')
                 return render_template('login.html', form=form)
             if user and not user.is_verified:
@@ -180,11 +183,19 @@ def login():
             else:
                 if user:
                     user.failed_login_attempts += 1
-                    if user.failed_login_attempts >= 5:
-                        user.account_locked_until = datetime.utcnow() + timedelta(minutes=15)
+                    if user.failed_login_attempts >= 3:
+                        user.account_locked_until = datetime.now() + timedelta(minutes=15)
+                        messsage = render_template(
+                            "email/account_locked.html",
+                            full_name = user.first_name+' '+user.last_name ,
+                            account_number=mask_account_number(user.account_number),
+                            lock_time=datetime.now().strftime('%d-%b-%Y %I:%M %p') ,
+                            unlock_time=(datetime.now() + timedelta(minutes=15)).strftime('%d-%b-%Y %I:%M %p'),
+                            support_link="https://ruppevaletBank.com/support",
+                            year= datetime.now().year
+                        )
+                        send_email(user.email, messsage, "Your RupeeVault Account Has Been Locked Due to Multiple Failed Login Attempts")
                     db.session.commit()
-                    messsage, subject = format_message([user.account_number ,str(datetime.now()), "+91-1800-123-4567"], "login_failed")
-                    send_email_message(user.email, messsage, subject)
                 flash('Invalid username or password.', 'error')
                 app.logger.warning(f'Failed login attempt for username: {account_no}')
         elif otpForm.validate_on_submit():
@@ -207,8 +218,16 @@ def login():
 
                 flash('Logged in successfully.', 'success')
                 app.logger.info(f'User {account_no} logged in successfully')
-                messsage, subject = format_message([user.first_name +user.last_name ,str(datetime.now()), "+91-1800-123-4567"], "login_success")
-                send_email_message(user.email, messsage, subject)
+                messsage= render_template(
+                        "email/login.html",
+                        full_name = user.first_name+' '+user.last_name ,
+                        account_number=mask_account_number(user.account_number),
+                        login_time=datetime.now().strftime('%d-%b-%Y %I:%M %p'),
+                        ip_address=request.remote_addr,
+                        user_agent = request.headers.get("User-Agent", "Unknown"),
+                        year= datetime.now().year
+                    )
+                send_email(user.email, messsage, "Security Alert: Login Activity on Your RupeeVault Account")
                 if user.is_admin:
                     return redirect(url_for('admin_dashboard'))
                 return redirect(url_for('dashboard'))
@@ -224,10 +243,14 @@ def login():
 @app.route('/send_otp',methods=['GET'])
 def send_otp():
     otpForm = OTPForm()
-    if session.get('account_no'):
+    account_no = session.get('account_no')
+    if account_no:
         otp = generate_otp(6)
         session['OTP'] = jwt.encode({'otp':otp}, app.config['JWT_SECRET_KEY'], algorithm='HS256')
+        user = db.session.get(User, account_no)
         print('\n\n\n', session['OTP'], '>>>',otp, '\n\n\n')
+        message = render_template('email/otp.html',otp = otp, full_name = user.first_name+' '+user.last_name )
+        send_email(user.email, message, 'RupeeVault Verification Code – Keep This Safe')
     else:
         flash('invalid session')
         return redirect(url_for('login'))
@@ -282,10 +305,17 @@ def register():
                 print('\n\n\n\n\n',new_user)
                 db.session.add(new_user)
                 db.session.commit()
-                messsage, subject = format_message([new_user.account_number ,str(datetime.now()), "+91-1800-123-4567"], "account_creation")
-                send_email_message(new_user.email, messsage, subject)
-                flash('Account created successfully. Please log in.', 'success')
-                app.logger.info(f'New user registered: {form.username.data}')
+                messsage = render_template(
+                    "email/account_request_received.html",
+                    full_name = new_user.first_name+' '+new_user.last_name ,
+                    account_number=new_user.account_number,
+                    registration_date=datetime.now().strftime('%d-%b-%Y %I:%M %p'),
+                    support_link="https://rupeevault.com/support",
+                    year= datetime.now().year
+                )
+                send_email(new_user.email, messsage, "Your RupeeVault Account Request Has Been Received – Pending Verification")
+                flash('your account is succucesfully created wait while we verify your account, we will inform after verification', 'success')
+                app.logger.info(f'New user registered: {form.username.data} account number: {new_user.account_number}')
                 return redirect(url_for('login'))
             except IntegrityError:
                 db.session.rollback()
@@ -304,7 +334,77 @@ def register():
 def dashboard(current_user):
     return render_template('dashboard.html', user=current_user)
 
+#================================================================================================================================================================
+@app.route('/transfer/comfirm/<account_no>', methods=['GET', 'POST'])
+@token_required
+def transfer_confirm(current_user, account_no):
+    form = TransferForm()
+    reciver_user = db.session.get(User, account_no)
+    
 
+@app.route('/transfer', methods=['GET', 'POST'])
+@token_required
+def transfer(current_user):
+    form = TransferForm()
+    if form.validate_on_submit():
+        try:
+            amount = form.amount.data
+            description = form.description.data
+            reciver_account = form.related_account_number.data
+            reciver_user = db.session.get(User, reciver_account)
+            if reciver_user:
+                amount = float(bleach.clean(str(amount), strip=True))
+
+                current_user.balance -= amount
+                transaction_sender = Transaction(account_number=current_user.account_number, transaction_type='Withdraw',
+                                        amount=amount, balance_after=current_user.balance, description=description)
+                transaction_sender.hash = generate_transaction_hash(transaction_sender)
+                reciver_user.balance += amount
+                transaction_reciver = Transaction(account_number=reciver_user.account_number, transaction_type='Deposit',
+                                        amount=amount, balance_after=reciver_user.balance, description=description)
+                transaction_reciver.hash = generate_transaction_hash(transaction_reciver)
+                db.session.add(transaction_sender)
+                db.session.add(transaction_reciver)
+                db.session.commit()
+                work=True
+            
+        except Exception as e:
+            work=False
+            db.session.rollback()
+            app.logger.error(f'Error during transfer: {str(e)}')
+        if work:
+            flash(f'{amount:.2f} Transfer successfully.', 'success')
+            app.logger.info(f'User {current_user.account_number} transfer {amount:.2f} to user {reciver_user.account_number}')
+            sender_message = render_template(
+                "email/fund_transfer_sent.html",
+                sender_name=current_user.first_name+' '+current_user.last_name ,
+                sender_account=current_user.account_number,
+                receiver_name=reciver_user.first_name+' '+reciver_user.last_name ,
+                receiver_account=reciver_user.account_number,
+                amount=amount,
+                transaction_date=datetime.now().strftime('%d-%b-%Y %I:%M %p'),
+                dashboard_link=url_for('dashboard'),
+                year=datetime.now().year
+            )
+
+            # Receiver confirmation
+            receiver_message = render_template(
+                "email/fund_transfer_received.html",
+                sender_name=current_user.first_name+' '+current_user.last_name ,
+                sender_account=current_user.account_number,
+                receiver_name=reciver_user.first_name+' '+reciver_user.last_name ,
+                receiver_account=reciver_user.account_number,
+                amount=amount,
+                transaction_date=datetime.now().strftime('%d-%b-%Y %I:%M %p'),
+                dashboard_link=url_for('dashboard'),
+                year=datetime.now().year
+            )
+            send_email(current_user.email, sender_message, f"Fund Transfer to { reciver_user.first_name+' '+reciver_user.last_name } (₹{ amount }) Completed")
+            send_email(reciver_user.email, receiver_message, f"You Received ₹{amount} from { current_user.first_name+' '+current_user.last_name}")
+            return render_template('transfer_confirmation.html', form=form, receiver_name=reciver_user.first_name+' '+reciver_user.last_name, amount=amount, account_number=reciver_user.account_number, description=description)
+        else:
+            flash('An error occurred during the transfer. Please try again.', 'error')
+    return render_template('transfer.html', form=form)
 #================================================================================================================================================================
 
 @app.route('/deposit', methods=['GET', 'POST'])
@@ -322,16 +422,20 @@ def deposit(current_user):
             transaction.hash = generate_transaction_hash(transaction)
             db.session.add(transaction)
             db.session.commit()
-            flash(f'Deposited {amount:.2f} successfully.', 'success')
-            app.logger.info(f'User {current_user.username} deposited {amount:.2f}')
-            messsage, subject = format_message([current_user.account_number ,str(datetime.now()), "+91-1800-123-4567"], "transaction_received")
-            send_email_message(current_user.email, messsage, subject)
-            return redirect(url_for('dashboard'))
+            work=True
             
         except Exception as e:
+            work=False
             db.session.rollback()
-            #app.logger.error(f'Error during deposit: {str(e)}')
-            print("/n/n/nmony not deposit\n\n\n\n", e)
+            app.logger.error(f'Error during deposit: {str(e)}')
+        if work:
+            flash(f'Deposited {amount:.2f} successfully.', 'success')
+            app.logger.info(f'User {current_user.username} deposited {amount:.2f}')
+            subject = f"₹{amount:.2f} Deposited to Your RupeeVault Account"
+            messsage = render_template("email/deposit_email.html", full_name=current_user.first_name + ' ' + current_user.last_name, account_number=current_user.account_number, amount=amount, transaction_date=datetime.now().strftime('%d-%b-%Y %I:%M %p'), new_balance=current_user.balance, description="Monthly savings deposit", dashboard_link="https://rupeevault.com/dashboard", year=datetime.now().year)
+            send_email(current_user.email, messsage, subject)
+            return redirect(url_for('dashboard'))
+        else:
             flash('An error occurred during the deposit. Please try again.', 'error')
     return render_template('deposit.html', form=form)
 
@@ -356,8 +460,18 @@ def withdraw(current_user):
                 db.session.commit()
                 flash(f'Withdrawn {amount:.2f} successfully.', 'success')
                 app.logger.info(f'User {current_user.username} withdrew {amount:.2f}')
-                messsage, subject = format_message([current_user.account_number ,str(datetime.now()), "+91-1800-123-4567"], "transaction_success")
-                send_email_message(current_user.email, messsage, subject)
+                subject = f"₹{amount:.2f} Withdrawn from Your RupeeVault Account"
+                message = render_template(
+                    "email/withdraw_email.html",
+                    full_name=current_user.first_name + ' ' + current_user.last_name,
+                    account_number=current_user.account_number,
+                    amount=amount,
+                    transaction_date=datetime.now().strftime('%d-%b-%Y %I:%M %p'),
+                    new_balance=current_user.balance,
+                    support_link="https://rupeevault.com/support",
+                    year=datetime.now().year
+                )
+                send_email(current_user.email, message, subject)
             else:
                 flash('Insufficient funds.', 'error')
             return redirect(url_for('dashboard'))
@@ -379,6 +493,44 @@ def transactions(current_user):
             app.logger.warning(f'Transaction integrity check failed for transaction ID: {transaction.id}')
             break
     return render_template('transactions.html', transactions=user_transactions)
+@app.route('/transactions/pdf/<int:email>')
+@token_required
+def download_transactions_pdf(current_user, email):
+    user_transactions = Transaction.query.filter_by(account_number=current_user.account_number).order_by(Transaction.date.desc()).all()
+    for transaction in user_transactions:
+        if not verify_transaction_integrity(transaction):
+            flash('Warning: Some transactions may have been tampered with.', 'error')
+            app.logger.warning(f'Transaction integrity check failed for transaction ID: {transaction.id}')
+            break
+    html = render_template('transactions_pdf.html', transactions=user_transactions, user=current_user, current_date=datetime.now())
+
+    result = BytesIO()
+    pisa_status = pisa.CreatePDF(src=html, dest=result)
+    result.seek(0)
+
+    if pisa_status.err:
+        return "PDF generation failed", 500
+
+    if email:
+        message = render_template(
+            "email/transaction_statement_email.html",
+            full_name=current_user.first_name + ' ' + current_user.last_name,
+            account_number=mask_account_number(current_user.account_number),
+            generated_on=datetime.now().strftime('%d-%b-%Y %I:%M %p'),
+            support_link="https://rupeevault.com/support",
+            year=datetime.now().year
+        )
+        send_email(current_user.email, message, "Your RupeeVault Transaction Statement (PDF Attached)", attachments=[("transaction_history.pdf", result.read())])
+        flash("email send","success")
+        return render_template('transactions.html', transactions=user_transactions)
+    else:
+        # Send as response
+        response = make_response(result.getvalue())
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = 'attachment; filename=transaction_history.pdf'
+        return response
+
+    
 
 #================================================================================================================================================================
 
@@ -426,10 +578,21 @@ def apply_loan(current_user):
             db.session.add(loan)
             db.session.commit()
             print(1233267567657)
-            flash(f'request for Loan of {amount:.2f} is succesfully processed.  Monthly payment: {monthly_payment:.2f}', 'success')
+            flash(f'request for Loan of {amount:.2f} is succesfully recived.  Monthly payment: {monthly_payment:.2f} wait until we verify it', 'success')
             app.logger.info(f'User {current_user.username} took a loan of {amount:.2f}')
-            messsage, subject = format_message([amount , monthly_payment, "+91-1800-123-4567"], "loan_approved")
-            send_email_message(current_user.email, messsage, subject)
+            subject = f'Loan Request of ₹{amount:.2f} Received – Pending Verification'
+            message = render_template(
+                "email/loan_request_received_email.html",
+                full_name=current_user.first_name + ' ' + current_user.last_name,
+                account_number=current_user.account_number,
+                amount=amount,
+                monthly_payment=monthly_payment,
+                date_applied=datetime.now().strftime('%d-%b-%Y %I:%M %p'),
+                support_link="https://rupeevault.com/support",
+                duration=years,
+                year=datetime.now().year
+            )
+            send_email(current_user.email, message, subject)
             return redirect(url_for('dashboard'))
         except Exception as e:
             db.session.rollback()
@@ -483,8 +646,15 @@ def admin_create_user():
             db.session.commit()
             flash('User created successfully.', 'success')
             app.logger.info(f'Admin created new user: {form.username.data}')
-            messsage, subject = format_message([new_user.account_number ,str(datetime.now()), "+91-1800-123-4567"], "account_creation")
-            send_email_message(new_user.email, messsage, subject)
+            message = render_template(
+                "email/account_verified.html",
+                full_name=new_user.first_name + ' ' + new_user.last_name,
+                account_number=new_user.account_number,
+                login_link=url_for('login'),
+                support_link="https://rupeevault.com/support",
+                year=datetime.now().year
+            )
+            send_email_message(new_user.email, message, "Your RupeeVault Account Is Now Verified and Ready to Use")
             return redirect(url_for('admin_dashboard'))
         except IntegrityError:
             db.session.rollback()
@@ -502,6 +672,19 @@ def delete_user(account_no):
             db.session.delete(user)
             db.session.commit()
             flash("User deleted successfully!", "success")
+            message = render_template(
+                "email/account_deleted_email.html",
+                full_name=user.first_name + ' ' + user.last_name,
+                account_number=user.account_number,
+                support_link="https://rupeevault.com/support",
+                year=datetime.now().year
+            )
+
+            send_email(
+                recipient_email=user.email,
+                text=message,
+                subject="Your RupeeVault Account Has Been Deleted"
+            )
         else:
             flash("User not found!", "danger")
         return redirect(url_for('admin_dashboard'))
@@ -512,10 +695,38 @@ def delete_user(account_no):
 def view_user_transaction(account_no):
         transactions = Transaction.query.filter_by(account_number=account_no).all()
         if transactions:
-            return render_template('transactions.html', transactions=transactions)
+            return render_template('admin_view_transactions.html', transactions=transactions, account_no = account_no)
         else:
             flash("no transaction found!", "danger")
         return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/user/transaction/pdf/<string:account_no>/<int:email>')
+@admin_required
+def admin_download_transactions_pdf(account_no, email):
+    view_user = User.query.get(account_no)
+    if view_user:
+        user_transactions = Transaction.query.filter_by(account_number=account_no).order_by(Transaction.date.desc()).all()
+        for transaction in user_transactions:
+            if not verify_transaction_integrity(transaction):
+                flash('Warning: Some transactions may have been tampered with.', 'error')
+                app.logger.warning(f'Transaction integrity check failed for transaction ID: {transaction.id}')
+                break
+        html = render_template('transactions_pdf.html', transactions=user_transactions, user=view_user, current_date=datetime.now())
+
+        result = BytesIO()
+        pisa_status = pisa.CreatePDF(src=html, dest=result)
+
+        if pisa_status.err:
+            return "PDF generation failed", 500
+        
+        # Send as response
+        response = make_response(result.getvalue())
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = 'attachment; filename=transaction_history.pdf'
+
+        return response
+    flash("no user found")
+    return "PDF generation failed no user found", 404
 
 #================================================================================================================================================================
 
@@ -543,6 +754,15 @@ def verify_edit_user(account_no):
                 pan_url = app.config['UPLOAD_FOLDER']+'/'+ user.pan_url
                 flash("user is verified", "success")
                 db.session.commit()
+                message = render_template(
+                    "email/account_verified.html",
+                    full_name=user.first_name + ' ' + user.last_name,
+                    account_number=user.account_number,
+                    login_link=url_for('login'),
+                    support_link="https://rupeevault.com/support",
+                    year=datetime.now().year
+                )
+                send_email(user.email, message, "Your RupeeVault Account Is Now Verified and Ready to Use")
                 return render_template('user_page.html', user=user, aadhar_image_url = aadhaar_url.strip() , pan_image_url = pan_url.strip())
             else:
                 flash("User not found", "success")
@@ -567,8 +787,28 @@ def approve_loan():
                     transaction.hash = generate_transaction_hash(transaction)
                     loan_transaction.transaction_id = transaction.id
                     db.session.add(transaction)
-                    flash("loan approved","success")
                     db.session.commit()
+                    flash("loan approved","success")
+                    message = render_template(
+                        "email/loan_approved_email.html",
+                        full_name=user.first_name + ' ' + user.last_name,
+                        account_number=user.account_number,
+                        amount=loan_transaction.amount,
+                        loan_type=loan_transaction.loan_type,
+                        duration=loan_transaction.years,  # in years
+                        monthly_payment=loan_transaction.monthly_payment,
+                        approval_date=datetime.now().strftime('%d-%b-%Y %I:%M %p'),
+                        login_link=url_for('login'),
+                        support_link="https://rupeevault.com/support",
+                        year=datetime.now().year
+                    )
+
+                    send_email(
+                        recipient_email=user.email,
+                        text=message,
+                        subject="🎉 Your RupeeVault Loan Request Has Been Approved!"
+                    )
+
                 else:
                     loan_transaction.is_approved = -1
                     flash("loan rejected","success")
@@ -612,8 +852,15 @@ def change_password(current_user):
             db.session.commit()
             flash('Password changed successfully.', 'success')
             app.logger.info(f'User {current_user.username} changed their password')
-            messsage, subject = format_message([str(datetime.now())], "password_change")
-            send_email_message(current_user.email, messsage, subject)
+            message = render_template(
+                "email/password_changed.html",
+                full_name=current_user.first_name + ' ' + current_user.last_name,
+                account_number=current_user.account_number,
+                changed_on=datetime.now().strftime('%d-%b-%Y %I:%M %p'),
+                reset_link="https://rupeevault.com/reset-password",
+                year=datetime.now().year
+            )
+            send_email(current_user.email, message, "Your RupeeVault Account Password Was Successfully Changed")
             return redirect(url_for('profile'))
 
     return render_template('change_password.html')
@@ -657,7 +904,7 @@ def internal_error(error):
 #================================================================================================================================================================
 @app.route('/api/admin/logs')
 @admin_required
-def get_logs():
+def get_logs(search_query=None):
     print("working")
     try:
         logs = []
@@ -668,24 +915,25 @@ def get_logs():
         for log_file_path in sorted(log_files, key=os.path.getmtime, reverse=True):
             with open(log_file_path, 'r') as log_file:
                 for line in log_file:
-                    match = re.match(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) (\w+): (.+) \[in .+\]', line)
-                    if match:
-                        timestamp, level, message = match.groups()
-                        
-                        # Extract IP, UserAgent, Method, and Path from the message
-                        ip_match = re.search(r'IP=([\d\.]+)', message)
-                        method_match = re.search(r'Method=(\w+)', message)
-                        path_match = re.search(r'Path=(/[^\s]+)', message)
-                        
-                        log_entry = {
-                            'timestamp': timestamp,
-                            'level': level,
-                            'message': message,
-                            'ip': ip_match.group(1) if ip_match else 'N/A',
-                            'method': method_match.group(1) if method_match else None,
-                            'path': path_match.group(1) if path_match else None
-                        }
-                        logs.append(log_entry)
+                    if True or search_query in line:
+                        match = re.match(r'(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) (\w+): (.+) \[in .+\]', line)
+                        if match:
+                            timestamp, level, message = match.groups()
+                            
+                            # Extract IP, UserAgent, Method, and Path from the message
+                            ip_match = re.search(r'IP=([\d\.]+)', message)
+                            method_match = re.search(r'Method=(\w+)', message)
+                            path_match = re.search(r'Path=(/[^\s]+)', message)
+                            
+                            log_entry = {
+                                'timestamp': timestamp,
+                                'level': level,
+                                'message': message,
+                                'ip': ip_match.group(1) if ip_match else 'N/A',
+                                'method': method_match.group(1) if method_match else None,
+                                'path': path_match.group(1) if path_match else None
+                            }
+                            logs.append(log_entry)
 
         # Sort logs by timestamp (newest first)
         sorted_logs = sorted(logs, key=lambda x: datetime.strptime(x['timestamp'], '%Y-%m-%d %H:%M:%S,%f'), reverse=True)
@@ -724,7 +972,7 @@ if __name__ == '__main__':
                 raise e
                 
 
-    app.run(debug=True, host='0.0.0.0', port=5000)  # Run without SSL
+    app.run(debug=app.config['production'], host='0.0.0.0', port=5000)  # Run without SSL
 
     # app.run(debug=False, host='0.0.0.0', port=5000)  # Run without SSL
     # app.run(debug=False, ssl_context='adhoc')  # Use 'adhoc' for development, proper SSL cert for production

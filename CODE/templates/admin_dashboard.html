@@ -347,11 +347,11 @@ const LogVisualization = () => {
 
     React.useEffect(() => {
         const filtered = logs.filter(log => 
-            (filterLevel === "ALL" || log.level === filterLevel) &&
-            (log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             log.ip.includes(searchTerm) ||
-             log.method.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             log.path.toLowerCase().includes(searchTerm.toLowerCase()))
+            (filterLevel === "ALL" || log.level === filterLevel) && (
+            (log.message || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            ( log.ip || "").includes(searchTerm) ||
+            ( log.method || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            ( log.path || "").toLowerCase().includes(searchTerm.toLowerCase()))
         );
         setFilteredLogs(filtered);
         setCurrentPage(1);
