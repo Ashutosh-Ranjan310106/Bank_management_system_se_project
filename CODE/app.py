@@ -28,14 +28,17 @@ from forms import *
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'your_secret_key'  # Use environment variable for production
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:password@localhost:3306/flask_bank'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI') or 'mysql+pymysql://root:password@localhost:3306/flask_bank'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or 'your_jwt_secret_key'  # Use environment variable for production
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=30)  # Token expires after 30 minutes
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] =  os.getenv("JWT_ACCESS_TOKEN_EXPIRES", "15m")  # Token expires after 30 minutes
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB max file size
 app.config['UPLOAD_EXTENSIONS'] = ['.jpg', '.jpeg', '.png']
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['production'] = os.environ.get('production')
+env = os.getenv("FLASK_ENV", "development")
+app.config["FLASK_ENV"] = env
+app.config["DEBUG"] = env == "development"
+print(env, app.config["DEBUG"])
 db.init_app(app)
 #migrate = Migrate(app, db)
 csrf = CSRFProtect(app)
@@ -956,23 +959,21 @@ def get_logs(search_query=None):
 
 
 #================================================================================================================================================================
-for rule in app.url_map.iter_rules():
-    methods = ','.join(rule.methods)
-    print(f"{rule.endpoint:30s} | {methods:20s} | {rule}")
 
-if __name__ == '__main__':
-    with app.app_context():
+with app.app_context():
         try:
-            User.query.first()
+            user = User.query.filter_by(is_admin=True).first()
         except Exception as e:
-            if 'no such column: user.is_admin' in str(e):
+            if 'no such table: user' in str(e):
                 print("Updating database schema...")
                 recreate_database()
             else:
                 raise e
+if __name__ == '__main__':
+   
                 
 
-    app.run(debug=app.config['production'], host='0.0.0.0', port=5000)  # Run without SSL
+    app.run(host='0.0.0.0', port=5000)  # Run without SSL
 
     # app.run(debug=False, host='0.0.0.0', port=5000)  # Run without SSL
     # app.run(debug=False, ssl_context='adhoc')  # Use 'adhoc' for development, proper SSL cert for production

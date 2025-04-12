@@ -1,16 +1,20 @@
+# Use Python 3.11 base image
 FROM python:3.11-slim
 
-WORKDIR /app
 
-# System dependencies (e.g. for pymysql)
-RUN apt-get update && apt-get install -y gcc default-libmysqlclient-dev && rm -rf /var/lib/apt/lists/*
+# Set working directory
+WORKDIR /app 
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy project files
+COPY . /app
 
-COPY . .
+# Install Python packages
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
 
-ENV FLASK_APP=app.py
-ENV FLASK_RUN_HOST=0.0.0.0
-
-CMD ["flask", "run"]
+#RUN python recreate_db.py
+# Expose Flask port
+EXPOSE 5000
+# Load from .env
+# Start everything via entrypoint
+CMD ["python", "app.py"]

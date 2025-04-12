@@ -16,18 +16,18 @@ from flask import render_template
 
 # Load variables from .env
 load_dotenv()
-production = os.getenv("production", "False") == "True"
 
-if production:
+is_production = os.getenv("FLASK_ENV", "development") == "production"
+if is_production:
     smtp_server = os.getenv("SMTP_SERVER")
     smtp_port = int(os.getenv("SMTP_PORT", 587))
     smtp_user = os.getenv("SMTP_USER")
     smtp_password = os.getenv("SMTP_PASSWORD")
 else:
-    smtp_server = "localhost"
-    smtp_port = 2525
-    smtp_user = os.getenv("SMTP_USER")  # Optional fallback
-    smtp_password = os.getenv("SMTP_PASSWORD")
+    smtp_dev_server = os.getenv("SMTP_DEV_SERVER")
+    smtp_dev_port = os.getenv("SMTP_DEV_PORT")
+    smtp_user = os.getenv("SMTP_DEV_USER")  # Optional fallback
+    #smtp_password = os.getenv("SMTP_PASSWORD")
 def run_in_thread(func):
     """
     A decorator to run the decorated function in a separate thread.
@@ -53,6 +53,14 @@ def recreate_database():
                  email='admin@example.com', account_type='admin', age=30, is_admin=True,is_verified = True, account_number = genrate_account_number('admin', 'admin'), aadhaar_url = 'qwert', pan_url='qwert')
     db.session.add(admin)
     db.session.commit()
+    message = render_template(
+        "email/account_verified.html",
+        full_name=admin.first_name + ' ' + admin.last_name,
+        account_number=admin.account_number,
+        support_link="https://rupeevault.com/support",
+        year=datetime.now().year
+    )
+    send_email(admin.email, message, "Your RupeeVault Account Is Now Verified and Ready to Use")
     print("Database recreated and admin user added.")
 #================================================================================================================================================================
 
@@ -162,7 +170,7 @@ def send_email(recipient_email, text, subject, attachments=None):
     print(text,subject, str(text), str(subject))
     body = text
     message = MIMEMultipart()
-    message["From"] = smtp_user
+    message["From"] = smtp_user 
     message["To"] = recipient_email
     message["Subject"] = subject
     message.attach(MIMEText(body, "HTML"))
@@ -172,8 +180,9 @@ def send_email(recipient_email, text, subject, attachments=None):
             part['Content-Disposition'] = f'attachment; filename="{filename}"'
             message.attach(part)
     try:
-        if not production:
-            server = smtplib.SMTP(smtp_server, smtp_port)
+        if not is_production:
+            print(smtp_dev_server, smtp_dev_port, smtp_user,'\n\n\n\n')
+            server = smtplib.SMTP(smtp_dev_server, smtp_dev_port)
             server.sendmail(smtp_user, recipient_email, message.as_string())
             res = 1
         else:
@@ -181,14 +190,11 @@ def send_email(recipient_email, text, subject, attachments=None):
             server.starttls()  # Secure the connection with TLS
             server.login(smtp_user, smtp_password)
             server.sendmail(smtp_user, recipient_email, message.as_string())
+            server.quit()
             res = 1
 
     except Exception as e:
         print(e)
         res = -1
-        
-    finally:
-        server.quit()
-
     return res
 

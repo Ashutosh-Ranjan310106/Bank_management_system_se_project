@@ -1,31 +1,32 @@
-version: '3.8'
-
 services:
-  web:
+  flaskapp:
     build: .
+    container_name: rupeevault
+    env_file:
+      - .env
     ports:
       - "5000:5000"
-    environment:
-      SECRET_KEY: your_production_secret
-      JWT_SECRET_KEY: your_jwt_secret_key
-      production: 1
-      # Use internal Docker hostname
-      DATABASE_URI: mysql+pymysql://root:root@db:3306/flask_bank
+    volumes:
+      - bankdata_volume:/bankdata
     depends_on:
-      - db
-    volumes:
-      - .:/app
+      - smtp
+    networks:
+      - appnet
 
-  db:
-    image: mysql:8.0
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: flask_bank
+  smtp:
+    image: rnwood/smtp4dev
+    container_name: smtp_server
     ports:
-      - "3306:3306"
+      - "1025:25"      # SMTP listening port
+      - "3000:80"      # Web UI to view emails
     volumes:
-      - db_data:/var/lib/mysql
+      - smtp4dev_volume:/smtp4dev
+    networks:
+      - appnet
+
+networks:
+  appnet:
 
 volumes:
-  db_data:
+  smtp4dev_volume:
+  bankdata_volume:

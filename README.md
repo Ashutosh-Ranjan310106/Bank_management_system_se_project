@@ -104,27 +104,12 @@ https://github.com/user-attachments/assets/6a12117d-d5c6-4e40-8cea-22822fb40ea0
 
 ## 🛠️ Installation
 
-### Using Docker
-
-1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/hamada-bank-system.git
-   cd hamada-bank-system
-   ```
-
-2. Build and run the Docker containers:
-   ```
-   docker-compose up --build
-   ```
-
-3. Access the application at `http://localhost:5000`
-
 ### Using Virtual Environment
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/hamada-bank-system.git
-   cd hamada-bank-system
+   git clone https://github.com/Ashutosh-Ranjan310106/Bank_management_system_se_project.git
+   cd Bank_management_system_se_project
    ```
 
 2. Create and activate a virtual environment:
@@ -140,24 +125,21 @@ https://github.com/user-attachments/assets/6a12117d-d5c6-4e40-8cea-22822fb40ea0
 
 4. Set up environment variables:
    ```
-   export FLASK_APP=app.py
-   export FLASK_ENV=development
-   export SECRET_KEY=your_secret_key
-   export JWT_SECRET_KEY=your_jwt_secret_key
+   mv .env.txt .env
+   and change your detail according to it 
    ```
 
-5. Initialize the database:
-   ```
-   flask db upgrade
-   ```
-
-6. Run the application:
+5. Run the application:
    ```
    flask run
    ```
+6. start email service
+   ```
+   docker volume create smtp4dev_volume
+   docker run -rm -it -p 3000:80 -p 1025:25 -v smtp4dev_volume:/smtp4dev rnwood/smtp4dev
+   ```
 
-7. Access the application at `http://localhost:5000`
-docker run -it -p 3000:80 -p 1025:25 rnwood/smtp4dev
+7. Access the application at `http://localhost:5000` Access the emails at `http://localhost:3000`
 ---
 
 ## 🖥️ Usage
