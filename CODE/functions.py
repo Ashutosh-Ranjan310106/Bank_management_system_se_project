@@ -50,7 +50,7 @@ def recreate_database():
     admin_password = generate_password_hash('admin123')  # You should change this password
     admin = User(username='admin', password=admin_password, first_name='Admin',
                  last_name='User', phone='1234567890', city='Admin City',
-                 email='admin@example.com', account_type='admin', age=30, is_admin=True,is_verified = True, account_number = genrate_account_number('admin', 'admin'), aadhaar_url = 'qwert', pan_url='qwert')
+                 email='admin@example.com', account_type='admin', age=30, is_admin=True,is_verified = True, account_number = 'SUPPERADMIN0', aadhaar_url = 'qwert', pan_url='qwert')
     db.session.add(admin)
     db.session.commit()
     message = render_template(

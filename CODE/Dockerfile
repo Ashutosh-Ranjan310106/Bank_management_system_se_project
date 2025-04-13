@@ -12,6 +12,7 @@ COPY . /app
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
+
 #RUN python recreate_db.py
 # Expose Flask port
 EXPOSE 5000
