@@ -139,16 +139,6 @@ def log_request_info():
     request.path
     )
 
-
-
-
-
-
-
-
-
-
-
 #================================================================================================================================================================
 
 
@@ -197,7 +187,7 @@ def login():
                             support_link="https://ruppevaletBank.com/support",
                             year= datetime.now().year
                         )
-                        send_email(user.email, messsage, "Your RupeeVault Account Has Been Locked Due to Multiple Failed Login Attempts")
+                        send_email(user.email, messsage, "Your Digivault Account Has Been Locked Due to Multiple Failed Login Attempts")
                     db.session.commit()
                 flash('Invalid username or password.', 'error')
                 app.logger.warning(f'Failed login attempt for username: {account_no}')
@@ -230,7 +220,7 @@ def login():
                         user_agent = request.headers.get("User-Agent", "Unknown"),
                         year= datetime.now().year
                     )
-                send_email(user.email, messsage, "Security Alert: Login Activity on Your RupeeVault Account")
+                send_email(user.email, messsage, "Security Alert: Login Activity on Your Digivault Account")
                 if user.is_admin:
                     return redirect(url_for('admin_dashboard'))
                 return redirect(url_for('dashboard'))
@@ -253,7 +243,7 @@ def send_otp():
         user = db.session.get(User, account_no)
         print('\n\n\n', session['OTP'], '>>>',otp, '\n\n\n')
         message = render_template('email/otp.html',otp = otp, full_name = user.first_name+' '+user.last_name )
-        send_email(user.email, message, 'RupeeVault Verification Code – Keep This Safe')
+        send_email(user.email, message, 'Digivault Verification Code – Keep This Safe')
     else:
         flash('invalid session')
         return redirect(url_for('login'))
@@ -313,10 +303,10 @@ def register():
                     full_name = new_user.first_name+' '+new_user.last_name ,
                     account_number=new_user.account_number,
                     registration_date=datetime.now().strftime('%d-%b-%Y %I:%M %p'),
-                    support_link="https://rupeevault.com/support",
+                    support_link="https://Digivault.com/support",
                     year= datetime.now().year
                 )
-                send_email(new_user.email, messsage, "Your RupeeVault Account Request Has Been Received – Pending Verification")
+                send_email(new_user.email, messsage, "Your Digivault Account Request Has Been Received – Pending Verification")
                 flash('your account is succucesfully created wait while we verify your account, we will inform after verification', 'success')
                 app.logger.info(f'New user registered: {form.username.data} account number: {new_user.account_number}')
                 return redirect(url_for('login'))
@@ -434,8 +424,8 @@ def deposit(current_user):
         if work:
             flash(f'Deposited {amount:.2f} successfully.', 'success')
             app.logger.info(f'User {current_user.username} deposited {amount:.2f}')
-            subject = f"₹{amount:.2f} Deposited to Your RupeeVault Account"
-            messsage = render_template("email/deposit_email.html", full_name=current_user.first_name + ' ' + current_user.last_name, account_number=current_user.account_number, amount=amount, transaction_date=datetime.now().strftime('%d-%b-%Y %I:%M %p'), new_balance=current_user.balance, description="Monthly savings deposit", dashboard_link="https://rupeevault.com/dashboard", year=datetime.now().year)
+            subject = f"₹{amount:.2f} Deposited to Your Digivault Account"
+            messsage = render_template("email/deposit_email.html", full_name=current_user.first_name + ' ' + current_user.last_name, account_number=current_user.account_number, amount=amount, transaction_date=datetime.now().strftime('%d-%b-%Y %I:%M %p'), new_balance=current_user.balance, description="Monthly savings deposit", dashboard_link="https://Digivault.com/dashboard", year=datetime.now().year)
             send_email(current_user.email, messsage, subject)
             return redirect(url_for('dashboard'))
         else:
@@ -463,7 +453,7 @@ def withdraw(current_user):
                 db.session.commit()
                 flash(f'Withdrawn {amount:.2f} successfully.', 'success')
                 app.logger.info(f'User {current_user.username} withdrew {amount:.2f}')
-                subject = f"₹{amount:.2f} Withdrawn from Your RupeeVault Account"
+                subject = f"₹{amount:.2f} Withdrawn from Your Digivault Account"
                 message = render_template(
                     "email/withdraw_email.html",
                     full_name=current_user.first_name + ' ' + current_user.last_name,
@@ -471,7 +461,7 @@ def withdraw(current_user):
                     amount=amount,
                     transaction_date=datetime.now().strftime('%d-%b-%Y %I:%M %p'),
                     new_balance=current_user.balance,
-                    support_link="https://rupeevault.com/support",
+                    support_link="https://Digivault.com/support",
                     year=datetime.now().year
                 )
                 send_email(current_user.email, message, subject)
@@ -520,10 +510,10 @@ def download_transactions_pdf(current_user, email):
             full_name=current_user.first_name + ' ' + current_user.last_name,
             account_number=mask_account_number(current_user.account_number),
             generated_on=datetime.now().strftime('%d-%b-%Y %I:%M %p'),
-            support_link="https://rupeevault.com/support",
+            support_link="https://Digivault.com/support",
             year=datetime.now().year
         )
-        send_email(current_user.email, message, "Your RupeeVault Transaction Statement (PDF Attached)", attachments=[("transaction_history.pdf", result.read())])
+        send_email(current_user.email, message, "Your Digivault Transaction Statement (PDF Attached)", attachments=[("transaction_history.pdf", result.read())])
         flash("email send","success")
         return render_template('transactions.html', transactions=user_transactions)
     else:
@@ -591,7 +581,7 @@ def apply_loan(current_user):
                 amount=amount,
                 monthly_payment=monthly_payment,
                 date_applied=datetime.now().strftime('%d-%b-%Y %I:%M %p'),
-                support_link="https://rupeevault.com/support",
+                support_link="https://Digivault.com/support",
                 duration=years,
                 year=datetime.now().year
             )
@@ -654,10 +644,10 @@ def admin_create_user():
                 full_name=new_user.first_name + ' ' + new_user.last_name,
                 account_number=new_user.account_number,
                 login_link=url_for('login'),
-                support_link="https://rupeevault.com/support",
+                support_link="https://Digivault.com/support",
                 year=datetime.now().year
             )
-            send_email_message(new_user.email, message, "Your RupeeVault Account Is Now Verified and Ready to Use")
+            send_email_message(new_user.email, message, "Your Digivault Account Is Now Verified and Ready to Use")
             return redirect(url_for('admin_dashboard'))
         except IntegrityError:
             db.session.rollback()
@@ -679,14 +669,14 @@ def delete_user(account_no):
                 "email/account_deleted_email.html",
                 full_name=user.first_name + ' ' + user.last_name,
                 account_number=user.account_number,
-                support_link="https://rupeevault.com/support",
+                support_link="https://Digivault.com/support",
                 year=datetime.now().year
             )
 
             send_email(
                 recipient_email=user.email,
                 text=message,
-                subject="Your RupeeVault Account Has Been Deleted"
+                subject="Your Digivault Account Has Been Deleted"
             )
         else:
             flash("User not found!", "danger")
@@ -762,10 +752,10 @@ def verify_edit_user(account_no):
                     full_name=user.first_name + ' ' + user.last_name,
                     account_number=user.account_number,
                     login_link=url_for('login'),
-                    support_link="https://rupeevault.com/support",
+                    support_link="https://Digivault.com/support",
                     year=datetime.now().year
                 )
-                send_email(user.email, message, "Your RupeeVault Account Is Now Verified and Ready to Use")
+                send_email(user.email, message, "Your Digivault Account Is Now Verified and Ready to Use")
                 return render_template('user_page.html', user=user, aadhar_image_url = aadhaar_url.strip() , pan_image_url = pan_url.strip())
             else:
                 flash("User not found", "success")
@@ -802,14 +792,14 @@ def approve_loan():
                         monthly_payment=loan_transaction.monthly_payment,
                         approval_date=datetime.now().strftime('%d-%b-%Y %I:%M %p'),
                         login_link=url_for('login'),
-                        support_link="https://rupeevault.com/support",
+                        support_link="https://Digivault.com/support",
                         year=datetime.now().year
                     )
 
                     send_email(
                         recipient_email=user.email,
                         text=message,
-                        subject="🎉 Your RupeeVault Loan Request Has Been Approved!"
+                        subject="🎉 Your Digivault Loan Request Has Been Approved!"
                     )
 
                 else:
@@ -860,10 +850,10 @@ def change_password(current_user):
                 full_name=current_user.first_name + ' ' + current_user.last_name,
                 account_number=current_user.account_number,
                 changed_on=datetime.now().strftime('%d-%b-%Y %I:%M %p'),
-                reset_link="https://rupeevault.com/reset-password",
+                reset_link="https://Digivault.com/reset-password",
                 year=datetime.now().year
             )
-            send_email(current_user.email, message, "Your RupeeVault Account Password Was Successfully Changed")
+            send_email(current_user.email, message, "Your Digivault Account Password Was Successfully Changed")
             return redirect(url_for('profile'))
 
     return render_template('change_password.html')
@@ -874,7 +864,7 @@ def change_password(current_user):
 @admin_required
 def audit_log():
     logs = []
-    with open('logs/RupeeVaultbank.log', 'r') as log_file:
+    with open('logs/Digivaultbank.log', 'r') as log_file:
         logs = log_file.readlines()
     return render_template('audit_log.html', logs=logs)
 

@@ -57,10 +57,10 @@ def recreate_database():
         "email/account_verified.html",
         full_name=admin.first_name + ' ' + admin.last_name,
         account_number=admin.account_number,
-        support_link="https://rupeevault.com/support",
+        support_link="https://Digivault.com/support",
         year=datetime.now().year
     )
-    send_email(admin.email, message, "Your RupeeVault Account Is Now Verified and Ready to Use")
+    send_email(admin.email, message, "Your Digivault Account Is Now Verified and Ready to Use")
     print("Database recreated and admin user added.")
 #================================================================================================================================================================
 

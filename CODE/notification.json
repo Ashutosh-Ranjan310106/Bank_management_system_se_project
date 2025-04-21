@@ -1,53 +1,53 @@
 {
-    "bank_name": "RupeeVault Bank",
+    "bank_name": "Digivault Bank",
     "notifications": {
         "login_success": {
         "subject": "Login Successful",
-        "message": "RupeeVault Bank: Your login request for account @ was successful at @ (Date & Time). If this wasn't you, contact customer support immediately at @ (Support Number)."
+        "message": "Digivault Bank: Your login request for account @ was successful at @ (Date & Time). If this wasn't you, contact customer support immediately at @ (Support Number)."
         },
         "login_failed": {
         "subject": "Failed Login Attempt",
-        "message": "RupeeVault Bank: Alert! A failed login attempt was detected for account @ at @ (Date & Time). If this wasn't you, please change your password and contact support at @ (Support Number)."
+        "message": "Digivault Bank: Alert! A failed login attempt was detected for account @ at @ (Date & Time). If this wasn't you, please change your password and contact support at @ (Support Number)."
         },
         "transaction_success": {
         "subject": "Transaction Successful",
-        "message": "RupeeVault Bank: Rs.@ debited from your account @ on @ (Date & Time). Available balance: Rs.@."
+        "message": "Digivault Bank: Rs.@ debited from your account @ on @ (Date & Time). Available balance: Rs.@."
         },
         "transaction_received": {
         "subject": "Amount Credited",
-        "message": "RupeeVault Bank: Rs.@ credited to your account @ on @ (Date & Time). Available balance: Rs.@."
+        "message": "Digivault Bank: Rs.@ credited to your account @ on @ (Date & Time). Available balance: Rs.@."
         },
         "low_balance_alert": {
         "subject": "Low Balance Alert",
-        "message": "RupeeVault Bank: Your account @ balance is low (Rs.@). Please maintain sufficient funds to avoid penalties."
+        "message": "Digivault Bank: Your account @ balance is low (Rs.@). Please maintain sufficient funds to avoid penalties."
         },
         "password_change": {
         "subject": "Password Changed",
-        "message": "RupeeVault Bank: Your account password was successfully changed at @ (Date & Time). If this wasn't you, reset your password immediately and contact support."
+        "message": "Digivault Bank: Your account password was successfully changed at @ (Date & Time). If this wasn't you, reset your password immediately and contact support."
         },
         "new_device_login": {
         "subject": "New Device Login Alert",
-        "message": "RupeeVault Bank: Your account @ was accessed from a new device at @ (Date & Time). If this wasn't you, secure your account immediately."
+        "message": "Digivault Bank: Your account @ was accessed from a new device at @ (Date & Time). If this wasn't you, secure your account immediately."
         },
         "card_usage_alert": {
         "subject": "Card Transaction Alert",
-        "message": "RupeeVault Bank: Your card ending with @ was used for a transaction of Rs.@ at @ (Merchant) on @ (Date & Time). If this wasn't you, report immediately."
+        "message": "Digivault Bank: Your card ending with @ was used for a transaction of Rs.@ at @ (Merchant) on @ (Date & Time). If this wasn't you, report immediately."
         },
         "loan_emi_due": {
         "subject": "Loan EMI Due Reminder",
-        "message": "RupeeVault Bank: Reminder! Your EMI of Rs.@ for loan account @ is due on @ (Due Date). Kindly ensure timely payment to avoid penalties."
+        "message": "Digivault Bank: Reminder! Your EMI of Rs.@ for loan account @ is due on @ (Due Date). Kindly ensure timely payment to avoid penalties."
         },
         "fixed_deposit_maturity": {
         "subject": "Fixed Deposit Maturity Alert",
-        "message": "RupeeVault Bank: Your Fixed Deposit (FD) of Rs.@ matures on @ (Maturity Date). Contact us for renewal or withdrawal options."
+        "message": "Digivault Bank: Your Fixed Deposit (FD) of Rs.@ matures on @ (Maturity Date). Contact us for renewal or withdrawal options."
         },
         "account_creation": {
-        "subject": "Welcome to RupeeVault Bank",
-        "message": "RupeeVault Bank: Congratulations! Your account @ has been successfully created on @ (Date). You can now enjoy seamless banking services. For any assistance, contact us at @ (Support Number)."
+        "subject": "Welcome to Digivault Bank",
+        "message": "Digivault Bank: Congratulations! Your account @ has been successfully created on @ (Date). You can now enjoy seamless banking services. For any assistance, contact us at @ (Support Number)."
         },
         "loan_approved": {
         "subject": "Loan Approved",
-        "message": "RupeeVault Bank: Congratulations! Your loan of Rs.@ has been approved. Your monthly payment will be Rs.@. For further details, contact @ (Support Number)."
+        "message": "Digivault Bank: Congratulations! Your loan of Rs.@ has been approved. Your monthly payment will be Rs.@. For further details, contact @ (Support Number)."
         }
     },
     "support_contact": "+91-1800-123-4567"
