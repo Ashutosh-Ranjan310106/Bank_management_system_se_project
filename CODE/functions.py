@@ -28,6 +28,7 @@ else:
     smtp_dev_port = os.getenv("SMTP_DEV_PORT")
     smtp_user = os.getenv("SMTP_DEV_USER")  # Optional fallback
     #smtp_password = os.getenv("SMTP_PASSWORD")
+print(is_production, smtp_server, smtp_port, smtp_user,'\n\n\n\n')
 def run_in_thread(func):
     """
     A decorator to run the decorated function in a separate thread.
