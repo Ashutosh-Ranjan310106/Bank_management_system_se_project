@@ -1,6 +1,5 @@
----
 
-## 🌐 Live Demo
+## Live Demo
 
 Experience Digivault Banking System live at: **[https://bank-management-system-se-project.onrender.com/](https://bank-management-system-se-project.onrender.com/)**
 
@@ -12,13 +11,14 @@ Experience Digivault Banking System live at: **[https://bank-management-system-s
 
 **Note**: This is a demonstration environment. Please do not enter real personal or financial information.
 
----# 🏦 Digivault Banking System
+---
+# 🏦 Digivault Banking System
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20Site-blue?style=for-the-badge&logo=render)](https://bank-management-system-se-project.onrender.com/)
 
 ## 📑 Table of Contents
-- [Overview](#overview)
 - [Live Demo](#live-demo)
+- [Overview](#overview)
 - [Features](#features)
 - [Security Measures](#security-measures)
 - [Tech Stack](#tech-stack)
@@ -38,8 +38,6 @@ Experience Digivault Banking System live at: **[https://bank-management-system-s
 ---
 
 ## 🌟 Overview
-
-**🌐 [Live Demo: https://bank-management-system-se-project.onrender.com/](https://bank-management-system-se-project.onrender.com/)**
 
 Digivault Banking System is a comprehensive, secure, and feature-rich banking application built with Flask. It provides a complete digital banking experience with robust security measures, document verification, email notifications, and comprehensive admin controls.
 
