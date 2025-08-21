@@ -225,7 +225,7 @@ The application will automatically create `database.sqlite3` in your project dir
 
 Create a `.env` file with the following structure:
 
-```bash
+```env
 # ======================
 # Flask Environment
 # ======================
@@ -242,7 +242,7 @@ DATABASE_URI=sqlite:///database.sqlite3
 # JWT Configuration
 # ======================
 #JWT_SECRET_KEY=your_jwt_secret_key_here
-JWT_ACCESS_TOKEN_EXPIRES=15m     # e.g., 15m, 1h, 1d
+JWT_ACCESS_TOKEN_EXPIRES=15m  
 JWT_REFRESH_TOKEN_EXPIRES=30d
 
 # ======================
